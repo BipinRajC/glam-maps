@@ -1,0 +1,17 @@
+{
+  "zone": {
+    "minor": ["Tiny smudge in {dist}m — steady that liner"],
+    "moderate": ["Smudge zone in {dist}m! Cap your kajal"],
+    "heavy": ["Heavy texture in {dist}m — brace your contour, hold tight"]
+  },
+  "smooth": [
+    "Clear road for {len}m — time for that winged liner",
+    "Smooth stretch ahead — go for the bold lip"
+  ],
+  "score_band": {
+    "85": "Winged Eyeliner Approved",
+    "65": "Mascara Stable",
+    "40": "Smudge Risk",
+    "0": "Full Reapply Required"
+  }
+}

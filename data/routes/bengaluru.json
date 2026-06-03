@@ -1,0 +1,11 @@
+{
+  "city": "bengaluru",
+  "corridors": [
+    {
+      "id": "indiranagar-koramangala",
+      "origin": { "label": "Indiranagar", "lat": 12.9784, "lng": 77.6408 },
+      "destination": { "label": "Koramangala", "lat": 12.9352, "lng": 77.6245 },
+      "waypoints": []
+    }
+  ]
+}
