@@ -1,34 +1,29 @@
-@import "tw-animate-css";
-@import "shadcn/tailwind.css";
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    --rose: #C2185B;
-    --gold: #F9A825;
-    --deep-bg: #1A1A2E;
-    --cream: #FFF8F0;
-    --electric-pink: #FF4081;
-    --champagne: #F5E6CA;
-
-    --background: #1A1A2E;
-    --foreground: #FFF8F0;
-    --card: rgba(255, 248, 240, 0.08);
-    --card-foreground: #FFF8F0;
-    --primary: #C2185B;
-    --primary-foreground: #FFF8F0;
-    --secondary: #F9A825;
-    --secondary-foreground: #1A1A2E;
-    --muted: rgba(255,255,255,0.12);
-    --muted-foreground: rgba(255,248,240,0.55);
-    --accent: #FF4081;
-    --accent-foreground: #FFF8F0;
-    --border: rgba(245, 230, 202, 0.2);
-    --input: rgba(255,255,255,0.1);
-    --ring: #C2185B;
+    --background: 234 26% 19%;
+    --foreground: 30 100% 97%;
+    --card: 234 26% 19%;
+    --card-foreground: 30 100% 97%;
+    --border: 38 60% 83%;
+    --input: 234 26% 25%;
+    --ring: 336 71% 44%;
     --radius: 1.25rem;
+    --primary: 336 71% 44%;
+    --primary-foreground: 30 100% 97%;
+    --secondary: 43 95% 56%;
+    --secondary-foreground: 234 26% 19%;
+    --muted: 234 26% 25%;
+    --muted-foreground: 38 60% 83%;
+    --accent: 340 100% 62%;
+    --accent-foreground: 30 100% 97%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 30 100% 97%;
+    --popover: 234 26% 19%;
+    --popover-foreground: 30 100% 97%;
   }
 
   * {
@@ -36,8 +31,7 @@
   }
 
   body {
-    background: var(--deep-bg);
-    color: var(--cream);
+    @apply bg-[#1A1A2E] text-[#FFF8F0];
     font-family: var(--font-inter), sans-serif;
     -webkit-font-smoothing: antialiased;
   }
@@ -57,6 +51,8 @@
   .text-balance {
     text-wrap: balance;
   }
+
+  /* Frosted glass cards */
   .glass {
     background: rgba(255, 248, 240, 0.07);
     backdrop-filter: blur(16px);
@@ -65,51 +61,36 @@
     border-radius: 20px;
   }
   .glass-dark {
-    background: rgba(26, 26, 46, 0.85);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border: 1px solid rgba(245, 230, 202, 0.15);
+    background: rgba(26, 26, 46, 0.88);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(245, 230, 202, 0.12);
     border-radius: 20px;
   }
-  .gradient-route {
-    background: linear-gradient(90deg, #C2185B, #FF4081, #F9A825);
-  }
-  .gradient-hero {
-    background: linear-gradient(135deg, #1A1A2E 0%, #2D1B35 50%, #1A1A2E 100%);
-  }
+
+  /* Semantic color utilities */
+  .text-cream { color: #FFF8F0; }
+  .text-champagne { color: #F5E6CA; }
   .text-gold { color: #F9A825; }
   .text-rose { color: #C2185B; }
-  .text-cream { color: #FFF8F0; }
   .text-electric { color: #FF4081; }
-  .text-champagne { color: #F5E6CA; }
+  .text-electric-pink { color: #FF4081; }
+  .bg-deep-bg { background: #1A1A2E; }
   .bg-rose { background: #C2185B; }
   .bg-gold { background: #F9A825; }
   .bg-electric { background: #FF4081; }
   .border-champagne { border-color: rgba(245, 230, 202, 0.3); }
-  .pulse-red {
-    animation: pulse-red 2s infinite;
-  }
 }
 
-@keyframes pulse-red {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.6; transform: scale(1.15); }
-}
-
-@keyframes shimmer {
-  0% { background-position: -200% center; }
-  100% { background-position: 200% center; }
-}
-
-@keyframes sparkle {
-  0%, 100% { opacity: 0; transform: scale(0) rotate(0deg); }
-  50% { opacity: 1; transform: scale(1) rotate(180deg); }
-}
-
-/* MapLibre overrides */
+/* MapLibre — hide controls */
 .maplibregl-ctrl-bottom-left,
 .maplibregl-ctrl-bottom-right,
 .maplibregl-ctrl-top-left,
 .maplibregl-ctrl-top-right {
-  display: none;
+  display: none !important;
+}
+
+@keyframes pulse-marker {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.4); opacity: 0.65; }
 }

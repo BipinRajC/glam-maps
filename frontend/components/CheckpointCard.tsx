@@ -69,10 +69,10 @@ export default function CheckpointCard({
               ? "linear-gradient(90deg, rgba(34,197,94,0.2), rgba(34,197,94,0.05))"
               : "linear-gradient(90deg, rgba(239,68,68,0.2), rgba(239,68,68,0.05))",
             borderBottom: `1px solid ${hazardColor}22`,
+            originX: 0,
           }}
           initial={{ scaleX: 0 }}
           animate={{ scaleX: 1 }}
-          style={{ originX: 0 } as React.CSSProperties}
           transition={{ duration: 0.4, delay: 0.3 }}
         >
           <div className="flex items-center gap-2">

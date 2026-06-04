@@ -31,7 +31,6 @@ export default function JourneyScreen({
   const mascotElRef = useRef<HTMLDivElement>(null);
   const animRef = useRef<ReturnType<typeof import("gsap")["gsap"]["to"]> | null>(null);
   const checkpointQueueRef = useRef<number[]>([]);
-  const currentCheckpointRef = useRef(0);
   const pausedRef = useRef(false);
 
   // Load GSAP
