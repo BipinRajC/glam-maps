@@ -5,23 +5,3 @@
 # context files
 contexts/*
 docs/*
-
-# claude folder
-.claude/*
-
-# Python
-__pycache__/
-*.pyc
-*.pyo
-.venv/
-venv/
-*.egg-info/
-dist/
-.pytest_cache/
-
-# Node
-node_modules/
-frontend/dist/
-
-# OS
-.DS_Store

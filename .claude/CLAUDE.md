@@ -63,3 +63,13 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 ---
 
 **These guidelines are working if:** fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, and clarifying questions come before implementation rather than after mistakes.
+
+
+## Committing changes
+Before committing any change for the backend, run the formatting commands:
+
+```bash
+cd backend
+uv run ruff check --fix .
+uv run ruff format .
+```
