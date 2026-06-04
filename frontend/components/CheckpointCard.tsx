@@ -151,7 +151,7 @@ export default function CheckpointCard({
           </span>
         </div>
 
-        <div className="px-4 pt-3 pb-4 flex flex-col gap-2.5">
+        <div className="px-5 pt-4 pb-5 flex flex-col gap-3">
           {/* Source + hazard label */}
           <div className="flex items-center gap-2 flex-wrap">
             <span
@@ -234,7 +234,7 @@ export default function CheckpointCard({
 
           {/* Continue CTA */}
           <motion.button
-            className="w-full py-3.5 rounded-2xl font-inter font-bold text-sm text-white mt-0.5"
+            className="w-full py-5 rounded-2xl font-inter font-bold text-base text-white mt-1"
             style={{ background: "linear-gradient(135deg, #C2185B 0%, #FF4081 60%, #F9A825 100%)" }}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.97 }}
