@@ -1,5 +1,7 @@
 "use client";
 
+import Image from "next/image";
+
 interface AuthenticityBadgeProps {
   text?: string;
   variant?: "namma" | "verified" | "powered";
@@ -18,18 +20,27 @@ export default function AuthenticityBadge({
   };
 
   const label = text ?? defaultTexts[variant];
-  const sizeClass = size === "sm" ? "text-xs px-2 py-0.5" : "text-sm px-3 py-1";
+  const sizeClass = size === "sm" ? "text-xs px-2.5 py-1" : "text-sm px-3 py-1.5";
+  const logoSize = size === "sm" ? 14 : 18;
 
   return (
     <span
-      className={`inline-flex items-center gap-1 ${sizeClass} rounded-full font-inter font-medium border`}
+      className={`inline-flex items-center gap-1.5 ${sizeClass} rounded-full font-inter font-medium border`}
       style={{
-        background: "rgba(249, 168, 37, 0.12)",
-        borderColor: "rgba(249, 168, 37, 0.35)",
-        color: "#F9A825",
+        background: "rgba(99, 102, 241, 0.08)",
+        borderColor: "rgba(99, 102, 241, 0.22)",
+        color: "#4c4876",
       }}
     >
-      🗺️ {label}
+      <Image
+        src="/nammapothole-logo.png"
+        alt="Namma Pothole"
+        width={logoSize}
+        height={logoSize}
+        className="rounded-sm object-contain"
+        style={{ opacity: 0.85 }}
+      />
+      {label}
     </span>
   );
 }

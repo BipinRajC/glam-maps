@@ -4,26 +4,26 @@
 
 @layer base {
   :root {
-    --background: 234 26% 19%;
-    --foreground: 30 100% 97%;
-    --card: 234 26% 19%;
-    --card-foreground: 30 100% 97%;
-    --border: 38 60% 83%;
-    --input: 234 26% 25%;
-    --ring: 336 71% 44%;
+    --background: 0 0% 100%;
+    --foreground: 244 46% 20%;
+    --card: 0 0% 100%;
+    --card-foreground: 244 46% 20%;
+    --border: 241 60% 90%;
+    --input: 241 48% 96%;
+    --ring: 241 82% 63%;
     --radius: 1.25rem;
     --primary: 336 71% 44%;
-    --primary-foreground: 30 100% 97%;
-    --secondary: 43 95% 56%;
-    --secondary-foreground: 234 26% 19%;
-    --muted: 234 26% 25%;
-    --muted-foreground: 38 60% 83%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 241 82% 63%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 241 48% 96%;
+    --muted-foreground: 244 20% 55%;
     --accent: 340 100% 62%;
-    --accent-foreground: 30 100% 97%;
+    --accent-foreground: 0 0% 100%;
     --destructive: 0 84% 60%;
-    --destructive-foreground: 30 100% 97%;
-    --popover: 234 26% 19%;
-    --popover-foreground: 30 100% 97%;
+    --destructive-foreground: 0 0% 100%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 244 46% 20%;
   }
 
   * {
@@ -31,8 +31,8 @@
   }
 
   body {
-    background: #0D0D1A;
-    color: #FFF8F0;
+    background: #ffffff;
+    color: #1e1b4b;
     font-family: var(--font-inter), sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -54,34 +54,37 @@
     text-wrap: balance;
   }
 
-  /* Frosted glass cards */
+  /* Light-theme frosted glass */
   .glass {
-    background: rgba(255, 248, 240, 0.07);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border: 1px solid rgba(245, 230, 202, 0.18);
-    border-radius: 20px;
-  }
-  .glass-dark {
-    background: rgba(26, 26, 46, 0.88);
+    background: rgba(255, 255, 255, 0.72);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(245, 230, 202, 0.12);
+    border: 1px solid rgba(99, 102, 241, 0.16);
     border-radius: 20px;
+    box-shadow: 0 2px 20px rgba(99, 102, 241, 0.07);
+  }
+  .glass-dark {
+    background: rgba(255, 255, 255, 0.88);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(99, 102, 241, 0.2);
+    border-radius: 20px;
+    box-shadow: 0 8px 40px rgba(99, 102, 241, 0.1);
   }
 
-  /* Semantic color utilities */
-  .text-cream { color: #FFF8F0; }
-  .text-champagne { color: #F5E6CA; }
-  .text-gold { color: #F9A825; }
+  /* Semantic color utilities — light theme */
+  .text-cream { color: #1e1b4b; }
+  .text-champagne { color: #4c4876; }
+  .text-gold { color: #d97706; }
   .text-rose { color: #C2185B; }
   .text-electric { color: #FF4081; }
   .text-electric-pink { color: #FF4081; }
-  .bg-deep-bg { background: #1A1A2E; }
+  .text-indigo { color: #6366f1; }
+  .bg-deep-bg { background: #f5f4ff; }
   .bg-rose { background: #C2185B; }
   .bg-gold { background: #F9A825; }
   .bg-electric { background: #FF4081; }
-  .border-champagne { border-color: rgba(245, 230, 202, 0.3); }
+  .border-champagne { border-color: rgba(99, 102, 241, 0.18); }
 }
 
 /* MapLibre — hide controls */
