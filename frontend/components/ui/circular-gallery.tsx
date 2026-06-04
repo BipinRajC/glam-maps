@@ -90,6 +90,7 @@ const CircularGallery = React.forwardRef<HTMLDivElement, CircularGalleryProps>(
                 }}
               >
                 <div className="relative w-full h-full rounded-2xl shadow-2xl overflow-hidden border border-white/10 backdrop-blur-lg" style={{ background: 'rgba(26,26,46,0.7)' }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={item.photo.url}
                     alt={item.photo.text}

@@ -128,6 +128,7 @@ const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(
 
         // ── Checkpoint markers ──
         route.checkpoints.forEach((cp) => {
+          if (!maplibregl) return;
           const el = document.createElement("div");
           el.style.cssText = `
             width: 18px; height: 18px; border-radius: 50%;
