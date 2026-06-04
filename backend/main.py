@@ -7,6 +7,7 @@ from app.api import routes
 from app.core.config import settings
 from app.core.database import engine
 from app.core.logger import logger
+from app.models.models import Base
 
 
 @asynccontextmanager
@@ -14,9 +15,10 @@ async def lifespan(app: FastAPI):
     # This block executes on startup
     logger.info(f'Starting up {settings.PROJECT_NAME}...')
     try:
-        # Example to quickly check connectivity to the DB on startup
         with engine.connect() as _connection:
             logger.info('Successfully connected to the database.')
+        Base.metadata.create_all(bind=engine)
+        logger.info('Database tables created (or already exist).')
     except Exception as e:
         logger.error(f'Failed to connect to the database: {e}')
 
