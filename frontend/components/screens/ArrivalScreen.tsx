@@ -335,9 +335,8 @@ export default function ArrivalScreen({ route, makeupIntegrity, onRestart }: Arr
           </motion.div>
 
           {/* Footer */}
-          <motion.div className="flex flex-col items-center gap-2 mt-10" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1 }}>
+          <motion.div className="flex justify-center mt-10" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1 }}>
             <AuthenticityBadge variant="powered" />
-            <p className="font-inter text-xs text-center" style={{ color: "#8480aa" }}>Road data powered by Namma Pothole · nammapothole.com</p>
           </motion.div>
         </div>
       </motion.div>

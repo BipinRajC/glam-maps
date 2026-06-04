@@ -157,13 +157,12 @@ export default function PassportPage() {
 
           {/* Footer */}
           <motion.div
-            className="flex flex-col items-center gap-2 pt-2"
+            className="flex justify-center pt-2"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.6 }}
           >
-            <AuthenticityBadge variant="namma" />
-            <p className="font-inter text-xs text-center" style={{ color: "#8480aa" }}>Road data powered by Namma Pothole · nammapothole.com</p>
+            <AuthenticityBadge variant="powered" />
           </motion.div>
         </div>
       </div>

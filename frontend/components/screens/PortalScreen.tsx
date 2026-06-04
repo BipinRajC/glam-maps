@@ -142,10 +142,7 @@ export default function PortalScreen({ onEnter, passport }: PortalScreenProps) {
                 ))}
               </motion.div>
 
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.85 }}>
-                <AuthenticityBadge variant="powered" />
               </motion.div>
-            </motion.div>
 
             {/* ── RIGHT: leaderboard panel ── */}
             <motion.div
@@ -235,14 +232,12 @@ export default function PortalScreen({ onEnter, passport }: PortalScreenProps) {
 
         {/* Footer */}
         <motion.div
-          className="flex items-center justify-center gap-2 px-6 pb-8"
+          className="flex justify-center px-6 pb-8"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 1 }}
         >
-          <span className="font-inter text-xs" style={{ color: "#8480aa" }}>Road data powered by</span>
-          <AuthenticityBadge variant="namma" size="sm" />
-          <span className="font-inter text-xs" style={{ color: "#8480aa" }}>· nammapothole.com</span>
+          <AuthenticityBadge variant="powered" size="sm" />
         </motion.div>
       </motion.div>
     </GradientBackground>

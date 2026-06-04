@@ -179,7 +179,7 @@ export default function CheckpointCard({
           {photo && (
             <motion.div
               className="relative rounded-xl overflow-hidden"
-              style={{ height: 90 }}
+              style={{ height: 130 }}
               initial={{ opacity: 0, scale: 0.97 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.2 }}

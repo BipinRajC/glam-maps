@@ -28,7 +28,6 @@ export default function CookingScreen({ route, onDone }: CookingScreenProps) {
   const [mapReady, setMapReady] = useState(false);
   const sequenceStarted = useRef(false);
 
-  // Advance loading lines every 600ms
   useEffect(() => {
     if (beat !== "loading") return;
     const interval = setInterval(() => {
@@ -41,24 +40,17 @@ export default function CookingScreen({ route, onDone }: CookingScreenProps) {
     if (sequenceStarted.current) return;
     sequenceStarted.current = true;
 
-    // Beat 1: reveal map
     setBeat("map-reveal");
     mapRef.current?.flyTo(route.startCoords, 14);
 
-    // Beat 2: draw route after fly-to
     setTimeout(() => {
       setBeat("route-draw");
       mapRef.current?.drawRoute(route, () => {
-        // Beat 3: mascot appears when route is done drawing
         setTimeout(() => {
           setBeat("mascot-reveal");
           mapRef.current?.addMascotMarker(route.startCoords);
-
-          // Beat 4: stats slide up
           setTimeout(() => {
             setBeat("stats-slide");
-
-            // Beat 5: done → transition to Journey
             setTimeout(() => {
               setBeat("done");
               setTimeout(onDone, 600);
@@ -69,12 +61,10 @@ export default function CookingScreen({ route, onDone }: CookingScreenProps) {
     }, 1300);
   }, [route, onDone]);
 
-  // Start sequence when loading lines done AND map ready
   useEffect(() => {
     if (loadingLineIdx < LOADING_LINES.length - 1) return;
     if (!mapReady) return;
     if (beat !== "loading") return;
-    // Small pause after last line
     const t = setTimeout(runSequence, 500);
     return () => clearTimeout(t);
   }, [loadingLineIdx, mapReady, beat, runSequence]);
@@ -82,16 +72,31 @@ export default function CookingScreen({ route, onDone }: CookingScreenProps) {
   const mapVisible = beat !== "loading";
 
   return (
-    <motion.div
-      className="relative flex flex-col min-h-dvh w-full overflow-hidden"
-      style={{ background: "linear-gradient(160deg, #0D0D1E 0%, #2D0F35 50%, #1A0D2E 100%)" }}
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-    >
-      {/* Map — always mounted, opacity transitions */}
+    <div className="relative flex flex-col min-h-dvh w-full overflow-hidden">
+      {/* Pink pulsating bg — visible only during loading state */}
+      <AnimatePresence>
+        {!mapVisible && (
+          <motion.div
+            key="loading-bg"
+            className="absolute inset-0 z-0"
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.6 }}
+          >
+            <div className="absolute inset-0" style={{ background: "#fff" }} />
+            <div
+              className="absolute inset-0"
+              style={{
+                background: "radial-gradient(125% 125% at 50% 90%, rgba(255,255,255,0) 40%, #ec4899 100%)",
+                animation: "glam-pulse 4s ease-in-out infinite",
+              }}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Map — always mounted, fades in */}
       <motion.div
-        className="absolute inset-0"
+        className="absolute inset-0 z-0"
         animate={{ opacity: mapVisible ? 1 : 0 }}
         transition={{ duration: 0.9 }}
       >
@@ -104,7 +109,7 @@ export default function CookingScreen({ route, onDone }: CookingScreenProps) {
         />
         <div
           className="absolute inset-0 pointer-events-none"
-          style={{ background: "linear-gradient(to top, rgba(13,7,30,0.75) 0%, rgba(13,7,30,0.2) 60%, transparent 100%)" }}
+          style={{ background: "linear-gradient(to top, rgba(240,240,255,0.55) 0%, rgba(240,240,255,0.08) 50%, transparent 100%)" }}
         />
       </motion.div>
 
@@ -117,24 +122,11 @@ export default function CookingScreen({ route, onDone }: CookingScreenProps) {
             exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 0.5 }}
           >
-            {/* Animated gradient blob BG */}
-            <motion.div
-              className="absolute inset-0 z-0"
-              animate={{
-                background: [
-                  "radial-gradient(ellipse at 30% 40%, rgba(194,24,91,0.25) 0%, transparent 60%), radial-gradient(ellipse at 70% 60%, rgba(249,168,37,0.15) 0%, transparent 60%)",
-                  "radial-gradient(ellipse at 70% 30%, rgba(194,24,91,0.25) 0%, transparent 60%), radial-gradient(ellipse at 30% 70%, rgba(249,168,37,0.15) 0%, transparent 60%)",
-                  "radial-gradient(ellipse at 30% 40%, rgba(194,24,91,0.25) 0%, transparent 60%), radial-gradient(ellipse at 70% 60%, rgba(249,168,37,0.15) 0%, transparent 60%)",
-                ],
-              }}
-              transition={{ duration: 4, repeat: Infinity }}
-            />
-
-            <div className="relative z-10 flex flex-col items-center gap-6 text-center">
+            <div className="flex flex-col items-center gap-6 text-center">
               <motion.div
                 className="font-playfair text-3xl font-bold"
                 style={{
-                  background: "linear-gradient(90deg, #C2185B, #FF4081, #F9A825)",
+                  background: "linear-gradient(90deg, #C2185B, #FF4081, #ec4899)",
                   WebkitBackgroundClip: "text",
                   WebkitTextFillColor: "transparent",
                 }}
@@ -156,13 +148,13 @@ export default function CookingScreen({ route, onDone }: CookingScreenProps) {
                         transition={{ duration: 0.35 }}
                       >
                         <span className="text-sm font-inter w-4 text-center"
-                          style={{ color: i < loadingLineIdx ? "#22c55e" : "#FF4081" }}>
+                          style={{ color: i < loadingLineIdx ? "#16a34a" : "#FF4081" }}>
                           {i < loadingLineIdx ? "✓" : "›"}
                         </span>
                         <span
                           className="font-inter text-sm flex-1"
                           style={{
-                            color: i < loadingLineIdx ? "rgba(255,248,240,0.35)" : "#FFF8F0",
+                            color: i < loadingLineIdx ? "#8480aa" : "#1e1b4b",
                             textDecoration: i < loadingLineIdx ? "line-through" : "none",
                           }}
                         >
@@ -179,7 +171,7 @@ export default function CookingScreen({ route, onDone }: CookingScreenProps) {
         )}
       </AnimatePresence>
 
-      {/* Route name badge (appears after map reveals) */}
+      {/* Route name badge */}
       <AnimatePresence>
         {(beat === "route-draw" || beat === "mascot-reveal" || beat === "stats-slide") && (
           <motion.div
@@ -191,16 +183,16 @@ export default function CookingScreen({ route, onDone }: CookingScreenProps) {
             transition={{ type: "spring", damping: 16 }}
           >
             <div className="glass px-5 py-2 text-center">
-              <p className="font-inter text-xs text-champagne/60 font-semibold uppercase tracking-widest mb-0.5">
+              <p className="font-inter text-xs font-semibold uppercase tracking-widest mb-0.5" style={{ color: "#8480aa" }}>
                 Your Glam Route
               </p>
-              <p className="font-playfair text-xl font-bold text-cream">{route.glamName}</p>
+              <p className="font-playfair text-xl font-bold" style={{ color: "#1e1b4b" }}>{route.glamName}</p>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Mascot entrance burst */}
+      {/* Mascot burst */}
       <AnimatePresence>
         {(beat === "mascot-reveal" || beat === "stats-slide") && (
           <motion.div
@@ -213,59 +205,48 @@ export default function CookingScreen({ route, onDone }: CookingScreenProps) {
             transition={{ type: "spring", damping: 10, stiffness: 140 }}
           >
             <div className="glass px-4 py-2.5 flex items-center gap-3">
-              <motion.span
-                className="text-2xl"
-                animate={{ rotate: [0, 15, -10, 0] }}
-                transition={{ duration: 0.6, delay: 0.2 }}
-              >
-                💄
-              </motion.span>
-              <span className="font-playfair text-sm text-cream font-bold">She&apos;s ready. Let&apos;s go.</span>
-              <motion.span
-                animate={{ opacity: [0.4, 1, 0.4] }}
-                transition={{ duration: 1.5, repeat: Infinity }}
-                className="text-base"
-              >
-                ✨
-              </motion.span>
+              <motion.span className="text-2xl" animate={{ rotate: [0, 15, -10, 0] }} transition={{ duration: 0.6, delay: 0.2 }}>💄</motion.span>
+              <span className="font-playfair text-sm font-bold" style={{ color: "#1e1b4b" }}>She&apos;s ready. Let&apos;s go.</span>
+              <motion.span animate={{ opacity: [0.4, 1, 0.4] }} transition={{ duration: 1.5, repeat: Infinity }} className="text-base">✨</motion.span>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Stats panel slides up from bottom */}
+      {/* Stats panel */}
       <AnimatePresence>
         {beat === "stats-slide" && (
           <motion.div
             key="stats"
-            className="absolute inset-x-3 bottom-3 z-20 glass-dark px-5 py-4 rounded-2xl"
+            className="absolute inset-x-3 bottom-3 z-20 glass-dark px-5 py-5 rounded-2xl"
             initial={{ y: 100, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 100, opacity: 0 }}
             transition={{ type: "spring", damping: 18, stiffness: 100 }}
           >
-            <div className="flex items-start justify-between mb-3">
+            <div className="flex items-start justify-between mb-4">
               <div>
-                <p className="font-playfair text-lg font-bold text-cream">{route.glamName}</p>
-                <p className="font-inter text-xs text-champagne/60">{route.realName}</p>
+                <p className="font-playfair text-lg font-bold" style={{ color: "#1e1b4b" }}>{route.glamName}</p>
+                <p className="font-inter text-xs" style={{ color: "#8480aa" }}>{route.realName}</p>
               </div>
               <span className={`text-xs font-inter font-semibold px-2 py-1 rounded-full border ${getDifficultyBg(route.difficulty)}`}>
                 {route.difficulty}
               </span>
             </div>
 
-            <div className="grid grid-cols-3 gap-3 mb-3">
+            <div className="grid grid-cols-3 gap-3 mb-4">
               <StatChip label="Checkpoints" value={`${route.checkpoints.length}`} />
               <StatChip label="Hazard Zones" value={`${route.stats.hazardZones}`} />
               <StatChip label="Community Reports" value={`${route.stats.communityReports}`} />
             </div>
 
-            <p className="font-inter text-xs text-cream/45 italic mb-3">&quot;{route.description}&quot;</p>
+            <p className="font-inter text-xs italic mb-3" style={{ color: "#4c4876" }}>&quot;{route.description}&quot;</p>
 
             <div className="flex items-center justify-between">
               <AuthenticityBadge variant="namma" size="sm" />
               <motion.span
-                className="font-inter text-xs font-semibold text-electric-pink"
+                className="font-inter text-xs font-semibold"
+                style={{ color: "#FF4081" }}
                 animate={{ opacity: [0.5, 1, 0.5] }}
                 transition={{ duration: 1.2, repeat: Infinity }}
               >
@@ -275,15 +256,15 @@ export default function CookingScreen({ route, onDone }: CookingScreenProps) {
           </motion.div>
         )}
       </AnimatePresence>
-    </motion.div>
+    </div>
   );
 }
 
 function StatChip({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex flex-col items-center gap-0.5 text-center">
-      <span className="font-inter font-bold text-xl text-cream">{value}</span>
-      <span className="font-inter text-xs text-champagne/50 leading-tight">{label}</span>
+      <span className="font-inter font-bold text-xl" style={{ color: "#1e1b4b" }}>{value}</span>
+      <span className="font-inter text-xs leading-tight" style={{ color: "#8480aa" }}>{label}</span>
     </div>
   );
 }

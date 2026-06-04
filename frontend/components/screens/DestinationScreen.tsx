@@ -142,8 +142,8 @@ export default function DestinationScreen({ onSelect }: DestinationScreenProps) 
             );
           })}
 
-          <motion.div className="flex justify-center pt-2" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.9 }}>
-            <AuthenticityBadge variant="powered" />
+          <motion.div className="flex justify-center pt-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.9 }}>
+            <AuthenticityBadge variant="powered" size="sm" />
           </motion.div>
         </div>
       </motion.div>
