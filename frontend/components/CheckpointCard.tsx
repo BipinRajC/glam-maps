@@ -209,10 +209,16 @@ export default function CheckpointCard({
                 )}
               </div>
 
-              {/* Big condition icon, centered */}
-              <div className="absolute inset-0 flex items-center justify-center">
+              {/* Big condition icon + placeholder label */}
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5">
                 <span className="text-3xl" style={{ filter: "drop-shadow(0 2px 8px rgba(0,0,0,0.8))" }}>
                   {photo.icon}
+                </span>
+                <span
+                  className="font-inter text-xs text-center px-3"
+                  style={{ color: "rgba(255,255,255,0.4)", letterSpacing: "0.02em" }}
+                >
+                  📸 Pothole image preview — coming soon
                 </span>
               </div>
 

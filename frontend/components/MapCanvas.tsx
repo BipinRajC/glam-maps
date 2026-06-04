@@ -3,7 +3,6 @@
 import { useEffect, useRef, forwardRef, useImperativeHandle } from "react";
 import type { GlamRoute } from "@/lib/routes";
 
-// Dynamically import maplibre to avoid SSR issues
 let maplibregl: typeof import("maplibre-gl") | null = null;
 
 export interface MapCanvasHandle {
@@ -11,6 +10,8 @@ export interface MapCanvasHandle {
   drawRoute: (route: GlamRoute, onDone?: () => void) => void;
   addMascotMarker: (coords: [number, number]) => void;
   moveMascotMarker: (coords: [number, number]) => void;
+  showCheckpointPopup: (coords: [number, number], text: string) => void;
+  removeCheckpointPopup: () => void;
   project: (coords: [number, number]) => { x: number; y: number } | null;
   getMap: () => InstanceType<typeof import("maplibre-gl").Map> | null;
 }
@@ -22,7 +23,6 @@ interface MapCanvasProps {
   onReady?: () => void;
 }
 
-// Bengaluru center
 const BENGALURU_CENTER: [number, number] = [77.5946, 12.9716];
 
 const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(
@@ -30,6 +30,7 @@ const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(
     const containerRef = useRef<HTMLDivElement>(null);
     const mapRef = useRef<InstanceType<typeof import("maplibre-gl").Map> | null>(null);
     const mascotMarkerRef = useRef<InstanceType<typeof import("maplibre-gl").Marker> | null>(null);
+    const popupRef = useRef<InstanceType<typeof import("maplibre-gl").Popup> | null>(null);
     const routeAnimFrameRef = useRef<number | null>(null);
 
     useEffect(() => {
@@ -46,18 +47,16 @@ const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(
           center: initialCenter,
           zoom: initialZoom,
           attributionControl: false,
-          interactive: true, // allow pan/zoom in journey screen
+          interactive: true,
         });
 
         mapRef.current = map;
-
-        map.on("load", () => {
-          onReady?.();
-        });
+        map.on("load", () => { onReady?.(); });
       });
 
       return () => {
         if (routeAnimFrameRef.current) cancelAnimationFrame(routeAnimFrameRef.current);
+        popupRef.current?.remove();
         mapRef.current?.remove();
         mapRef.current = null;
       };
@@ -71,12 +70,11 @@ const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(
 
       drawRoute(route: GlamRoute, onDone?: () => void) {
         const map = mapRef.current;
-        if (!map) return;
+        if (!map || !maplibregl) return;
 
         const sourceId = "glam-route";
         const layerId = "glam-route-layer";
 
-        // Remove existing route
         if (map.getLayer(layerId)) map.removeLayer(layerId);
         if (map.getSource(sourceId)) map.removeSource(sourceId);
 
@@ -93,21 +91,63 @@ const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(
           type: "line",
           source: sourceId,
           layout: { "line-cap": "round", "line-join": "round" },
-          paint: {
-            "line-color": "#FF4081",
-            "line-width": 5,
-            "line-opacity": 0.9,
-          },
+          paint: { "line-color": "#FF4081", "line-width": 5, "line-opacity": 0.9 },
         });
 
-        // Draw the route over ~2s (120 frames at 60fps), interpolating smoothly
+        // ── Start marker (green pin with ring) ──
+        const startEl = document.createElement("div");
+        startEl.style.cssText = `
+          width: 22px; height: 22px; border-radius: 50%;
+          background: #16a34a;
+          border: 3px solid white;
+          box-shadow: 0 0 0 3px #16a34a55, 0 2px 10px rgba(0,0,0,0.25);
+          display: flex; align-items: center; justify-content: center;
+          font-size: 11px;
+        `;
+        startEl.innerHTML = "▶";
+        startEl.style.color = "white";
+        new maplibregl.Marker({ element: startEl })
+          .setLngLat(route.startCoords)
+          .addTo(map);
+
+        // ── End/destination marker (pink flag) ──
+        const endEl = document.createElement("div");
+        endEl.style.cssText = `
+          width: 28px; height: 28px; border-radius: 50%;
+          background: linear-gradient(135deg, #C2185B, #FF4081);
+          border: 3px solid white;
+          box-shadow: 0 0 0 3px rgba(194,24,91,0.35), 0 2px 12px rgba(194,24,91,0.4);
+          display: flex; align-items: center; justify-content: center;
+          font-size: 14px;
+          animation: pulse-marker 2s infinite;
+        `;
+        endEl.innerHTML = "🏁";
+        new maplibregl.Marker({ element: endEl })
+          .setLngLat(route.endCoords)
+          .addTo(map);
+
+        // ── Checkpoint markers ──
+        route.checkpoints.forEach((cp) => {
+          const el = document.createElement("div");
+          el.style.cssText = `
+            width: 18px; height: 18px; border-radius: 50%;
+            background: ${markerColor(cp.def.markerColor)};
+            border: 2.5px solid white;
+            box-shadow: 0 0 0 2px ${markerColor(cp.def.markerColor)}55, 0 2px 8px rgba(0,0,0,0.2);
+            ${cp.def.pulse ? "animation: pulse-marker 2s infinite;" : ""}
+          `;
+          new maplibregl.Marker({ element: el })
+            .setLngLat(cp.coords)
+            .addTo(map!);
+        });
+
+        // ── Animate route drawing ──
         const TARGET_FRAMES = 120;
         const step = Math.max(1, Math.ceil(coords.length / TARGET_FRAMES));
         let frameCount = 0;
 
         function animate() {
           frameCount++;
-          // For short polylines, slow down by only advancing every N frames
           const advance = coords.length <= 12 ? frameCount % 12 === 0 : true;
           if (advance) drawn = Math.min(drawn + step, coords.length);
           const src = map?.getSource(sourceId) as import("maplibre-gl").GeoJSONSource | undefined;
@@ -116,32 +156,13 @@ const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(
             properties: {},
             geometry: { type: "LineString", coordinates: coords.slice(0, drawn) },
           });
-
           if (drawn < coords.length) {
             routeAnimFrameRef.current = requestAnimationFrame(animate);
           } else {
             onDone?.();
           }
         }
-
         routeAnimFrameRef.current = requestAnimationFrame(animate);
-
-        // Also add checkpoint markers
-        route.checkpoints.forEach((cp) => {
-          const el = document.createElement("div");
-          el.style.cssText = `
-            width: 16px; height: 16px; border-radius: 50%;
-            background: ${markerColor(cp.def.markerColor)};
-            border: 2px solid white;
-            box-shadow: 0 0 8px ${markerColor(cp.def.markerColor)};
-            ${cp.def.pulse ? "animation: pulse-marker 2s infinite;" : ""}
-          `;
-
-          if (!maplibregl) return;
-          new maplibregl.Marker({ element: el })
-            .setLngLat(cp.coords)
-            .addTo(map!);
-        });
       },
 
       addMascotMarker(coords) {
@@ -151,12 +172,12 @@ const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(
         const el = document.createElement("div");
         el.id = "mascot-map-marker";
         el.style.cssText = `
-          width: 28px; height: 28px; border-radius: 50%;
+          width: 32px; height: 32px; border-radius: 50%;
           background: linear-gradient(135deg, #C2185B, #FF4081);
-          border: 3px solid #F9A825;
-          box-shadow: 0 0 16px rgba(194,24,91,0.8);
+          border: 3px solid white;
+          box-shadow: 0 0 0 3px rgba(194,24,91,0.4), 0 2px 16px rgba(194,24,91,0.6);
           display: flex; align-items: center; justify-content: center;
-          font-size: 14px;
+          font-size: 15px;
           z-index: 100;
         `;
         el.innerHTML = "💄";
@@ -168,6 +189,26 @@ const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(
 
       moveMascotMarker(coords) {
         mascotMarkerRef.current?.setLngLat(coords);
+      },
+
+      showCheckpointPopup(coords, text) {
+        const map = mapRef.current;
+        if (!map || !maplibregl) return;
+        popupRef.current?.remove();
+        popupRef.current = new maplibregl.Popup({
+          closeButton: false,
+          closeOnClick: false,
+          offset: 20,
+          className: "glam-checkpoint-popup",
+        })
+          .setLngLat(coords)
+          .setHTML(`<span style="font-family:sans-serif;font-size:12px;font-weight:700;color:#1e1b4b;white-space:nowrap;">${text}</span>`)
+          .addTo(map);
+      },
+
+      removeCheckpointPopup() {
+        popupRef.current?.remove();
+        popupRef.current = null;
       },
 
       project(coords) {
@@ -186,8 +227,18 @@ const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(
       <>
         <style>{`
           @keyframes pulse-marker {
-            0%, 100% { transform: scale(1); opacity: 1; box-shadow: 0 0 8px currentColor; }
-            50% { transform: scale(1.4); opacity: 0.7; box-shadow: 0 0 20px currentColor; }
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.35); opacity: 0.75; }
+          }
+          .glam-checkpoint-popup .maplibregl-popup-content {
+            background: rgba(255,255,255,0.96);
+            border: 1px solid rgba(99,102,241,0.22);
+            border-radius: 12px;
+            padding: 7px 13px;
+            box-shadow: 0 4px 18px rgba(99,102,241,0.18);
+          }
+          .glam-checkpoint-popup .maplibregl-popup-tip {
+            border-top-color: rgba(255,255,255,0.96);
           }
         `}</style>
         <div ref={containerRef} className={`w-full h-full ${className}`} />
@@ -200,13 +251,13 @@ MapCanvas.displayName = "MapCanvas";
 
 function markerColor(color: string): string {
   const map: Record<string, string> = {
-    green: "#22c55e",
-    blue: "#60a5fa",
-    yellow: "#F9A825",
+    green: "#16a34a",
+    blue: "#6366f1",
+    yellow: "#d97706",
     orange: "#f97316",
-    red: "#ef4444",
+    red: "#dc2626",
   };
-  return map[color] ?? "#ffffff";
+  return map[color] ?? "#6366f1";
 }
 
 export default MapCanvas;

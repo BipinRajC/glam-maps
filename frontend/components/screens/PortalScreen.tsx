@@ -54,7 +54,7 @@ export default function PortalScreen({ onEnter, passport }: PortalScreenProps) {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
               >
-                ✦ Flipkart Glam Up × Namma Pothole ✦
+                ✦ Flipkart Glam Up ✦
               </motion.div>
 
               {/* Big headline */}

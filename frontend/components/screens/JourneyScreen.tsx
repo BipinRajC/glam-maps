@@ -3,11 +3,22 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { GlamRoute } from "@/lib/routes";
+import type { HazardType } from "@/lib/checkpoints";
 import type { JourneyState } from "@/lib/journeyMachine";
 import MapCanvas, { type MapCanvasHandle } from "@/components/MapCanvas";
 import CheckpointCard from "@/components/CheckpointCard";
 import AuthenticityBadge from "@/components/shared/AuthenticityBadge";
 import { getDifficultyBg } from "@/lib/score";
+
+const CHECKPOINT_WITTIES: Record<HazardType, string> = {
+  smooth:             "Makeup intact. Rare Bengaluru sighting ✨",
+  flyover:            "No lipstick zone up here ⬆️",
+  "pothole-light":    "Slight wobble. Hold your brushes 💄",
+  "pothole-cluster":  "Foundation has left the chat 😭",
+  "pothole-severe":   "RIP contour. No survivors 💀",
+  construction:       "Road work? More like face work 🚧",
+  "speed-hump":       "Lipstick exit: confirmed 💋",
+};
 
 interface JourneyScreenProps {
   route: GlamRoute;
@@ -105,17 +116,29 @@ export default function JourneyScreen({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mapReady]);
 
-  // Resume after checkpoint dismissed
+  // Resume after checkpoint dismissed + manage map popup
   const prevActiveCard = useRef(false);
   useEffect(() => {
     const wasActive = prevActiveCard.current;
     const isActive = journeyState.activeCheckpointCard;
     prevActiveCard.current = isActive;
-    if (wasActive && !isActive && animState.current.paused) {
-      animState.current.paused = false;
-      setTimeout(() => loopRef.current(), 450);
+
+    if (isActive && !wasActive) {
+      // Show witty popup at the checkpoint that was just reached
+      const cp = route.checkpoints[journeyState.checkpointIndex];
+      if (cp) {
+        const witty = CHECKPOINT_WITTIES[cp.def.hazardType] ?? "Something happened to your glam 💄";
+        mapRef.current?.showCheckpointPopup(cp.coords, witty);
+      }
     }
-  }, [journeyState.activeCheckpointCard]);
+    if (wasActive && !isActive) {
+      mapRef.current?.removeCheckpointPopup();
+      if (animState.current.paused) {
+        animState.current.paused = false;
+        setTimeout(() => loopRef.current(), 450);
+      }
+    }
+  }, [journeyState.activeCheckpointCard, journeyState.checkpointIndex, route.checkpoints]);
 
   const handleMapReady = useCallback(() => {
     setMapReady(true);
