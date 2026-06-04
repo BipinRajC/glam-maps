@@ -11,19 +11,19 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
-  backend:
-    build:
-      context: ./backend
-    restart: always
-    ports:
-      - "8000:8000"
-    environment:
-      - DATABASE_URL=postgresql://postgres:password@db:5432/glammaps
-    depends_on:
-      - db
-    # Mount backend code to allow live reloading natively during development if desired
-    # volumes:
-    #   - ./backend:/app
+  # backend:
+  #   build:
+  #     context: ./backend
+  #   restart: always
+  #   ports:
+  #     - "8000:8000"
+  #   environment:
+  #     - DATABASE_URL=postgresql://postgres:password@db:5432/glammaps
+  #   depends_on:
+  #     - db
+  #   # Mount backend code to allow live reloading natively during development if desired
+  #   # volumes:
+  #   #   - ./backend:/app
 
 volumes:
   postgres_data:
