@@ -45,18 +45,18 @@ backend/
 
 ## Running the Backend
 
-Use `uv` to run the FastAPI application. Ensure you are in the `backend` directory.
+Ensure you are in the `backend` directory. The server will run on the port specified in the `PORT` environment variable (default: 8000).
 
 ### Development Mode
 Run with hot-reloading enabled for development:
 ```bash
-uv run uvicorn app.main:app --reload
+uv run main.py
 ```
 
 ### Production Mode
-Run without hot-reloading for production:
+Run the application directly:
 ```bash
-uv run uvicorn app.main:app
+uv run main
 ```
 
 ## API Documentation

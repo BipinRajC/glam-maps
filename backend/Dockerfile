@@ -25,4 +25,4 @@ RUN uv sync --no-dev
 ENV PATH="/app/.venv/bin:$PATH"
 
 # Run the FastAPI application
-CMD ["fastapi", "run", "app/main.py", "--port", "8000", "--host", "0.0.0.0"]
+CMD ["python", "main.py"]
