@@ -189,6 +189,8 @@ const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(
 
       moveMascotMarker(coords) {
         mascotMarkerRef.current?.setLngLat(coords);
+        // Follow the mascot — duration matches GSAP segment (0.7s), linear easing keeps it locked
+        mapRef.current?.easeTo({ center: coords, duration: 750, easing: (t) => t });
       },
 
       showCheckpointPopup(coords, text) {
