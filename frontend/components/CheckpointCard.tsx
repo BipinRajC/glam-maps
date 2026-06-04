@@ -117,14 +117,15 @@ export default function CheckpointCard({
 
   return (
     <motion.div
-      className="absolute inset-x-0 bottom-0 z-50 px-3 pb-3"
+      className="absolute inset-x-0 bottom-0 z-50 flex justify-center px-4 pb-4"
       initial={{ y: "110%" }}
       animate={{ y: 0 }}
       exit={{ y: "110%" }}
       transition={{ type: "spring", damping: 26, stiffness: 260 }}
     >
+      {/* Max width so it floats as a card, not full-screen on desktop */}
       <div
-        className="glass-dark rounded-3xl overflow-hidden"
+        className="w-full max-w-md sm:max-w-lg glass-dark rounded-3xl overflow-hidden shadow-2xl"
         style={{ border: `1px solid ${hazardColor}30` }}
       >
         {/* Top — integrity impact */}
