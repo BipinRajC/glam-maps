@@ -5,3 +5,4 @@
 # context files
 contexts/*
 docs/*
+backend/API_DOC.md
