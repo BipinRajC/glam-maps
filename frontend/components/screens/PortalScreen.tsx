@@ -18,11 +18,18 @@ const ROUTE_LEADERBOARD = [
   { routeId: "survival",   badge: "💀" },
 ];
 
+const STATS = [
+  { value: "41+", label: "Community reports" },
+  { value: "3", label: "Glam routes" },
+  { value: "6", label: "Destinations" },
+  { value: "100%", label: "Road-verified" },
+];
+
 export default function PortalScreen({ onEnter, passport }: PortalScreenProps) {
   return (
     <motion.div
-      className="relative w-full min-h-dvh overflow-hidden flex flex-col items-center justify-center"
-      style={{ background: "linear-gradient(160deg, #1A1A2E 0%, #2D1535 60%, #1A1A2E 100%)" }}
+      className="relative w-full min-h-dvh flex flex-col"
+      style={{ background: "linear-gradient(145deg, #0f0a1e 0%, #1e0d30 40%, #12091e 100%)" }}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -30,146 +37,209 @@ export default function PortalScreen({ onEnter, passport }: PortalScreenProps) {
     >
       <Sparkles />
 
-      {/* Responsive inner layout: stacked on mobile, side-by-side on desktop */}
-      <div className="relative z-10 w-full max-w-5xl mx-auto px-4 sm:px-8 py-10 flex flex-col lg:flex-row gap-8 items-center lg:items-start">
+      {/* ── Main grid: editorial hero (left) + leaderboard panel (right) ── */}
+      <div className="relative z-10 flex-1 flex flex-col justify-center px-6 sm:px-10 lg:px-16 xl:px-24 py-12">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_400px] xl:grid-cols-[1fr_460px] gap-10 xl:gap-16 items-center">
 
-        {/* Left column: hero card */}
-        <div className="flex flex-col items-center lg:items-start gap-5 w-full lg:max-w-md">
-          {/* Brand pill */}
+          {/* ── LEFT: editorial hero ── */}
           <motion.div
-            className="px-3 py-1 rounded-full text-xs font-inter font-semibold"
-            style={{ background: "rgba(194,24,91,0.18)", border: "1px solid rgba(194,24,91,0.4)", color: "#FF4081" }}
-            initial={{ opacity: 0, y: -12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.15 }}
+            className="flex flex-col gap-7"
+            initial={{ opacity: 0, x: -32 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ type: "spring", damping: 20, stiffness: 80, delay: 0.1 }}
           >
-            ✦ Flipkart Glam Up × Namma Pothole ✦
-          </motion.div>
-
-          {/* Hero card */}
-          <motion.div
-            className="relative glass w-full px-6 sm:px-8 pt-8 pb-7 flex flex-col items-center gap-5 text-center"
-            initial={{ opacity: 0, y: 28, scale: 0.96 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            transition={{ type: "spring", damping: 18, stiffness: 80, delay: 0.1 }}
-          >
+            {/* Brand pill */}
             <motion.div
-              className="absolute inset-0 rounded-[20px] pointer-events-none"
-              style={{ border: "1px solid rgba(249,168,37,0.22)", borderRadius: 20 }}
-              animate={{ opacity: [0.4, 1, 0.4] }}
-              transition={{ duration: 3, repeat: Infinity }}
-            />
-
-            <motion.div
-              className="text-7xl sm:text-8xl"
-              animate={{ y: [0, -7, 0] }}
-              transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+              className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-inter font-semibold w-fit"
+              style={{ background: "rgba(194,24,91,0.18)", border: "1px solid rgba(194,24,91,0.4)", color: "#FF4081" }}
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
             >
-              💄
+              ✦ Flipkart Glam Up × Namma Pothole ✦
             </motion.div>
 
+            {/* Big headline */}
             <div>
-              <h1 className="font-playfair text-4xl sm:text-5xl font-bold text-cream leading-tight mb-3">
-                Welcome to the{" "}
-                <span style={{ background: "linear-gradient(90deg, #C2185B, #FF4081, #F9A825)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
-                  Glamverse
-                </span>
-              </h1>
-              <p className="font-inter text-sm sm:text-base text-cream/60 leading-relaxed">
+              <motion.p
+                className="font-inter text-sm sm:text-base text-cream/50 uppercase tracking-widest font-semibold mb-2"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.3 }}
+              >
+                Welcome to the
+              </motion.p>
+              <motion.h1
+                className="font-playfair font-bold leading-[0.9] mb-4"
+                style={{
+                  fontSize: "clamp(3.5rem, 8vw, 7rem)",
+                  background: "linear-gradient(135deg, #FFF8F0 0%, #FF4081 50%, #F9A825 100%)",
+                  WebkitBackgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                }}
+                initial={{ opacity: 0, y: 24 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.35, type: "spring", damping: 16 }}
+              >
+                Glamverse
+              </motion.h1>
+              <motion.p
+                className="font-inter text-base sm:text-lg text-cream/55 leading-relaxed max-w-lg"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.5 }}
+              >
                 Bengaluru&apos;s roads have opinions about your makeup.
-                <br />Let&apos;s find out which ones are on your side.
-              </p>
+                <br className="hidden sm:block" />
+                Let&apos;s find out which ones are on your side.
+              </motion.p>
             </div>
 
-            <motion.button
-              className="w-full py-4 rounded-2xl font-inter font-bold text-base sm:text-lg text-white relative overflow-hidden"
-              style={{ background: "linear-gradient(135deg, #C2185B 0%, #FF4081 50%, #F9A825 100%)" }}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.97 }}
-              onClick={onEnter}
-              initial={{ opacity: 0, y: 12 }}
+            {/* CTA buttons */}
+            <motion.div
+              className="flex flex-col sm:flex-row gap-3 sm:items-center"
+              initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.55 }}
+              transition={{ delay: 0.6 }}
             >
-              <motion.div
-                className="absolute inset-0"
-                style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.18), transparent)" }}
-                animate={{ x: ["-100%", "200%"] }}
-                transition={{ duration: 2, repeat: Infinity, repeatDelay: 1.5 }}
-              />
-              Enter the Glamverse ✨
-            </motion.button>
+              <motion.button
+                className="relative overflow-hidden px-8 py-4 rounded-2xl font-inter font-bold text-base sm:text-lg text-white"
+                style={{ background: "linear-gradient(135deg, #C2185B 0%, #FF4081 50%, #F9A825 100%)" }}
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.97 }}
+                onClick={onEnter}
+              >
+                <motion.div
+                  className="absolute inset-0"
+                  style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent)" }}
+                  animate={{ x: ["-100%", "200%"] }}
+                  transition={{ duration: 2.2, repeat: Infinity, repeatDelay: 1 }}
+                />
+                Enter the Glamverse ✨
+              </motion.button>
 
-            <div className="flex items-center gap-4 text-xs font-inter">
-              <Link href="/passport" className="text-gold/70 hover:text-gold transition-colors underline underline-offset-2">
+              <Link
+                href="/passport"
+                className="px-6 py-4 rounded-2xl font-inter font-semibold text-base text-cream/60 hover:text-cream border border-champagne/15 hover:border-champagne/30 transition-colors text-center sm:text-left"
+              >
                 {passport.length > 0 ? `✦ ${passport.length} route${passport.length > 1 ? "s" : ""} in Passport` : "View Glam Passport"}
               </Link>
-              <span className="text-cream/20">|</span>
-              <span className="text-cream/30">nammapothole.com</span>
+            </motion.div>
+
+            {/* Stats strip */}
+            <motion.div
+              className="grid grid-cols-4 gap-4 pt-2"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.75 }}
+            >
+              {STATS.map((s) => (
+                <div key={s.label} className="flex flex-col gap-0.5">
+                  <span className="font-inter font-bold text-xl sm:text-2xl" style={{ color: "#F9A825" }}>{s.value}</span>
+                  <span className="font-inter text-xs text-cream/40 leading-tight">{s.label}</span>
+                </div>
+              ))}
+            </motion.div>
+
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.85 }}>
+              <AuthenticityBadge variant="powered" />
+            </motion.div>
+          </motion.div>
+
+          {/* ── RIGHT: leaderboard panel ── */}
+          <motion.div
+            className="flex flex-col gap-4"
+            initial={{ opacity: 0, x: 32 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ type: "spring", damping: 20, stiffness: 80, delay: 0.2 }}
+          >
+            <div className="glass rounded-3xl overflow-hidden">
+              {/* Panel header */}
+              <div
+                className="px-6 py-4 border-b border-champagne/10"
+                style={{ background: "rgba(194,24,91,0.08)" }}
+              >
+                <div className="flex items-center justify-between">
+                  <h3 className="font-playfair text-lg font-bold text-cream">Bengaluru Road Report</h3>
+                  <span className="font-inter text-xs text-champagne/45">Route rankings</span>
+                </div>
+              </div>
+
+              {/* Route rows */}
+              <div className="px-4 py-3 flex flex-col gap-1">
+                {ROUTE_LEADERBOARD.map(({ routeId, badge }, i) => {
+                  const r = ROUTES[routeId];
+                  return (
+                    <motion.div
+                      key={routeId}
+                      className="flex items-center gap-3 px-3 py-3 rounded-xl"
+                      style={{ background: "rgba(255,255,255,0.03)" }}
+                      initial={{ opacity: 0, x: 16 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.4 + i * 0.09 }}
+                    >
+                      <span className="text-2xl w-8 text-center shrink-0">{badge}</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-inter text-sm font-semibold text-cream">{r.glamName}</p>
+                        <p className="font-inter text-xs text-champagne/40 truncate">{r.realName}</p>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className={`text-xs font-inter font-semibold px-2 py-0.5 rounded-full border ${getDifficultyBg(r.difficulty)}`}>
+                          {r.difficulty === "Survival Mode" ? "💀" : r.difficulty}
+                        </span>
+                        <div className="text-right w-14">
+                          <span className="font-inter text-base font-bold tabular-nums block" style={{ color: roadScoreColor(r.roadScore) }}>
+                            {r.roadScore}
+                          </span>
+                          <span className="font-inter text-xs text-champagne/35 leading-none">/ 100</span>
+                        </div>
+                      </div>
+                    </motion.div>
+                  );
+                })}
+              </div>
+
+              {/* Panel footer */}
+              <div className="px-6 py-3 border-t border-champagne/10">
+                <p className="font-inter text-xs text-champagne/35 leading-snug">
+                  Score = road quality index based on pothole density, severity &amp; community reports from Namma Pothole.
+                </p>
+              </div>
+            </div>
+
+            {/* Quick feature cards */}
+            <div className="grid grid-cols-2 gap-3">
+              {[
+                { icon: "🗺️", title: "Real Road Data", desc: "Powered by Namma Pothole reports" },
+                { icon: "💄", title: "Glam Score", desc: "Track your makeup through Bengaluru" },
+                { icon: "🛍️", title: "Flipkart Deals", desc: "Exclusive beauty discounts on arrival" },
+                { icon: "📍", title: "3 Live Routes", desc: "Easy → Medium → Survival Mode" },
+              ].map((f, i) => (
+                <motion.div
+                  key={f.title}
+                  className="glass px-4 py-3 rounded-2xl flex flex-col gap-1"
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.7 + i * 0.07 }}
+                >
+                  <span className="text-xl">{f.icon}</span>
+                  <p className="font-inter text-xs font-semibold text-cream leading-tight">{f.title}</p>
+                  <p className="font-inter text-xs text-champagne/45 leading-tight">{f.desc}</p>
+                </motion.div>
+              ))}
             </div>
           </motion.div>
         </div>
-
-        {/* Right column: leaderboard — always shows, stacks below on mobile */}
-        <motion.div
-          className="glass w-full lg:max-w-sm px-5 sm:px-6 py-5 flex flex-col gap-4 self-start"
-          initial={{ opacity: 0, y: 24 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.45 }}
-        >
-          <div className="flex items-center justify-between">
-            <h3 className="font-playfair text-base sm:text-lg font-bold text-cream">Bengaluru Road Report</h3>
-            <span className="font-inter text-xs text-champagne/50">Route rankings</span>
-          </div>
-
-          <div className="flex flex-col gap-3">
-            {ROUTE_LEADERBOARD.map(({ routeId, badge }, i) => {
-              const r = ROUTES[routeId];
-              return (
-                <motion.div
-                  key={routeId}
-                  className="flex items-center gap-3 py-2 px-3 rounded-xl"
-                  style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.06)" }}
-                  initial={{ opacity: 0, x: -16 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.55 + i * 0.08 }}
-                >
-                  <span className="text-xl w-7 text-center shrink-0">{badge}</span>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-inter text-sm font-semibold text-cream truncate">{r.glamName}</p>
-                    <p className="font-inter text-xs text-champagne/45">{r.realName}</p>
-                  </div>
-                  <div className="flex flex-col items-end gap-1 shrink-0">
-                    <span className={`text-xs font-inter font-semibold px-1.5 py-0.5 rounded-full border ${getDifficultyBg(r.difficulty)}`}>
-                      {r.difficulty === "Survival Mode" ? "💀" : r.difficulty}
-                    </span>
-                    <span className="font-inter text-sm font-bold tabular-nums" style={{ color: roadScoreColor(r.roadScore) }}>
-                      {r.roadScore}<span className="text-xs text-champagne/40">/100</span>
-                    </span>
-                  </div>
-                </motion.div>
-              );
-            })}
-          </div>
-
-          <div className="pt-2 border-t border-champagne/10">
-            <p className="font-inter text-xs text-champagne/40 leading-relaxed">
-              Road score based on pothole density, community reports, and surface condition data from Namma Pothole.
-            </p>
-          </div>
-
-          <AuthenticityBadge variant="powered" />
-        </motion.div>
       </div>
 
       {/* Footer */}
       <motion.p
-        className="relative z-10 font-inter text-xs text-cream/20 text-center pb-6"
+        className="relative z-10 font-inter text-xs text-cream/20 text-center px-6 pb-6"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ delay: 0.85 }}
+        transition={{ delay: 1 }}
       >
-        Road data powered by Namma Pothole community reports 🗺️
+        Road data powered by Namma Pothole community reports 🗺️ &nbsp;·&nbsp; nammapothole.com
       </motion.p>
     </motion.div>
   );
