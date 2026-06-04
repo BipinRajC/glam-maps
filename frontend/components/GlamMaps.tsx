@@ -19,17 +19,11 @@ export default function GlamMaps() {
     passport: loadPassport(),
   });
 
-  // Persist passport on change
-  useEffect(() => {
-    savePassport(state.passport);
-  }, [state.passport]);
+  useEffect(() => { savePassport(state.passport); }, [state.passport]);
 
-  // Demo keyboard shortcut: Shift+D → jump to Journey (survival route), Shift+A → jump to Arrival
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
-      if (e.shiftKey && e.key === "D") {
-        dispatch({ type: "DEMO_JUMP_JOURNEY", routeId: "survival" });
-      }
+      if (e.shiftKey && e.key === "D") dispatch({ type: "DEMO_JUMP_JOURNEY", routeId: "survival" });
       if (e.shiftKey && e.key === "A") {
         if (state.selectedRouteId) dispatch({ type: "DEMO_JUMP_ARRIVAL" });
         else dispatch({ type: "DEMO_JUMP_JOURNEY", routeId: "influencer" });
@@ -41,90 +35,52 @@ export default function GlamMaps() {
 
   const selectedRoute = state.selectedRouteId ? ROUTES[state.selectedRouteId] : null;
 
-  const handleReachCheckpoint = useCallback(
-    (index: number, delta: number, progress: number) => {
-      dispatch({ type: "REACH_CHECKPOINT", checkpointIndex: index, integrityDelta: delta, progressPct: progress });
-    },
-    []
-  );
+  const handleReachCheckpoint = useCallback((index: number, delta: number, progress: number) => {
+    dispatch({ type: "REACH_CHECKPOINT", checkpointIndex: index, integrityDelta: delta, progressPct: progress });
+  }, []);
 
   const handleDismissCheckpoint = useCallback(() => {
     dispatch({ type: "DISMISS_CHECKPOINT" });
   }, []);
 
   return (
-    <div
-      className="w-full min-h-dvh flex items-start justify-center"
-      style={{ background: "radial-gradient(ellipse at 50% 0%, #2D1535 0%, #0D0D1A 60%)" }}
-    >
-      {/* Mobile-width container — fills full width on mobile, capped at 430px on desktop */}
-      <div
-        className="relative w-full min-h-dvh overflow-hidden"
-        style={{ maxWidth: 430, background: "#1A1A2E" }}
-      >
-        <AnimatePresence mode="sync">
-          {state.screen === "PORTAL" && (
-            <PortalScreen
-              key="portal"
-              passport={state.passport}
-              onEnter={() => dispatch({ type: "ENTER_GLAMVERSE" })}
-            />
-          )}
+    // Full-width — no max-width cap. Each screen manages its own responsive layout.
+    <div className="relative w-full min-h-dvh" style={{ background: "#0D0D1A" }}>
+      <AnimatePresence mode="sync">
+        {state.screen === "PORTAL" && (
+          <PortalScreen key="portal" passport={state.passport} onEnter={() => dispatch({ type: "ENTER_GLAMVERSE" })} />
+        )}
+        {state.screen === "PERMISSION" && (
+          <PermissionScreen key="permission" onGrant={() => dispatch({ type: "GRANT_LOCATION" })} onDeny={() => dispatch({ type: "DENY_LOCATION" })} />
+        )}
+        {state.screen === "DESTINATION" && (
+          <DestinationScreen key="destination" onSelect={(routeId) => dispatch({ type: "SELECT_DESTINATION", routeId })} />
+        )}
+        {state.screen === "COOKING" && selectedRoute && (
+          <CookingScreen key="cooking" route={selectedRoute} onDone={() => dispatch({ type: "COOKING_DONE" })} />
+        )}
+        {state.screen === "JOURNEY" && selectedRoute && (
+          <JourneyScreen
+            key="journey"
+            route={selectedRoute}
+            journeyState={state}
+            onReachCheckpoint={handleReachCheckpoint}
+            onDismissCheckpoint={handleDismissCheckpoint}
+            onArrive={() => dispatch({ type: "ARRIVE" })}
+          />
+        )}
+        {state.screen === "ARRIVAL" && selectedRoute && (
+          <ArrivalScreen key="arrival" route={selectedRoute} makeupIntegrity={state.makeupIntegrity} onRestart={() => dispatch({ type: "RESTART" })} />
+        )}
+      </AnimatePresence>
 
-          {state.screen === "PERMISSION" && (
-            <PermissionScreen
-              key="permission"
-              onGrant={() => dispatch({ type: "GRANT_LOCATION" })}
-              onDeny={() => dispatch({ type: "DENY_LOCATION" })}
-            />
-          )}
-
-          {state.screen === "DESTINATION" && (
-            <DestinationScreen
-              key="destination"
-              onSelect={(routeId) => dispatch({ type: "SELECT_DESTINATION", routeId })}
-            />
-          )}
-
-          {state.screen === "COOKING" && selectedRoute && (
-            <CookingScreen
-              key="cooking"
-              route={selectedRoute}
-              onDone={() => dispatch({ type: "COOKING_DONE" })}
-            />
-          )}
-
-          {state.screen === "JOURNEY" && selectedRoute && (
-            <JourneyScreen
-              key="journey"
-              route={selectedRoute}
-              journeyState={state}
-              onReachCheckpoint={handleReachCheckpoint}
-              onDismissCheckpoint={handleDismissCheckpoint}
-              onArrive={() => dispatch({ type: "ARRIVE" })}
-            />
-          )}
-
-          {state.screen === "ARRIVAL" && selectedRoute && (
-            <ArrivalScreen
-              key="arrival"
-              route={selectedRoute}
-              makeupIntegrity={state.makeupIntegrity}
-              onRestart={() => dispatch({ type: "RESTART" })}
-            />
-          )}
-        </AnimatePresence>
-
-        {/* Demo safety controls — hidden overlay */}
-        <DemoControls
-          onJumpJourney={(routeId) => dispatch({ type: "DEMO_JUMP_JOURNEY", routeId })}
-          onJumpArrival={() => {
-            if (!state.selectedRouteId) dispatch({ type: "DEMO_JUMP_JOURNEY", routeId: "influencer" });
-            setTimeout(() => dispatch({ type: "DEMO_JUMP_ARRIVAL" }), 100);
-          }}
-        />
-      </div>
-
+      <DemoControls
+        onJumpJourney={(routeId) => dispatch({ type: "DEMO_JUMP_JOURNEY", routeId })}
+        onJumpArrival={() => {
+          if (!state.selectedRouteId) dispatch({ type: "DEMO_JUMP_JOURNEY", routeId: "influencer" });
+          setTimeout(() => dispatch({ type: "DEMO_JUMP_ARRIVAL" }), 100);
+        }}
+      />
     </div>
   );
 }
