@@ -53,9 +53,15 @@ export default function GlamMaps() {
   }, []);
 
   return (
-    <div className="w-full min-h-dvh flex items-start justify-center" style={{ background: "#0D0D1A" }}>
-      {/* Mobile-width container */}
-      <div className="relative w-full max-w-[430px] min-h-dvh overflow-hidden" style={{ background: "#1A1A2E" }}>
+    <div
+      className="w-full min-h-dvh flex items-start justify-center"
+      style={{ background: "radial-gradient(ellipse at 50% 0%, #2D1535 0%, #0D0D1A 60%)" }}
+    >
+      {/* Mobile-width container — fills full width on mobile, capped at 430px on desktop */}
+      <div
+        className="relative w-full min-h-dvh overflow-hidden"
+        style={{ maxWidth: 430, background: "#1A1A2E" }}
+      >
         <AnimatePresence mode="sync">
           {state.screen === "PORTAL" && (
             <PortalScreen
@@ -119,12 +125,6 @@ export default function GlamMaps() {
         />
       </div>
 
-      {/* Ambient gutter on large screens */}
-      <style>{`
-        @media (min-width: 430px) {
-          body { background: #0D0D1A; }
-        }
-      `}</style>
     </div>
   );
 }

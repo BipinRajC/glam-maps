@@ -31,9 +31,11 @@
   }
 
   body {
-    @apply bg-[#1A1A2E] text-[#FFF8F0];
+    background: #0D0D1A;
+    color: #FFF8F0;
     font-family: var(--font-inter), sans-serif;
     -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
   html {

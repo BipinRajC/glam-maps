@@ -100,11 +100,16 @@ const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(
           },
         });
 
-        const TOTAL_FRAMES = 60;
-        const step = Math.ceil(coords.length / TOTAL_FRAMES);
+        // Draw the route over ~2s (120 frames at 60fps), interpolating smoothly
+        const TARGET_FRAMES = 120;
+        const step = Math.max(1, Math.ceil(coords.length / TARGET_FRAMES));
+        let frameCount = 0;
 
         function animate() {
-          drawn = Math.min(drawn + step, coords.length);
+          frameCount++;
+          // For short polylines, slow down by only advancing every N frames
+          const advance = coords.length <= 12 ? frameCount % 12 === 0 : true;
+          if (advance) drawn = Math.min(drawn + step, coords.length);
           const src = map?.getSource(sourceId) as import("maplibre-gl").GeoJSONSource | undefined;
           src?.setData({
             type: "Feature",
