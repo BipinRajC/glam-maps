@@ -56,7 +56,7 @@ export default function GlamMaps() {
     <div className="w-full min-h-dvh flex items-start justify-center" style={{ background: "#0D0D1A" }}>
       {/* Mobile-width container */}
       <div className="relative w-full max-w-[430px] min-h-dvh overflow-hidden" style={{ background: "#1A1A2E" }}>
-        <AnimatePresence mode="wait">
+        <AnimatePresence mode="sync">
           {state.screen === "PORTAL" && (
             <PortalScreen
               key="portal"

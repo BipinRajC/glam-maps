@@ -2,7 +2,6 @@
 
 import { motion } from "framer-motion";
 import type { CheckpointDef } from "@/lib/checkpoints";
-import AuthenticityBadge from "@/components/shared/AuthenticityBadge";
 
 interface CheckpointCardProps {
   checkpoint: CheckpointDef;
@@ -14,29 +13,37 @@ interface CheckpointCardProps {
 
 const HAZARD_LABELS: Record<string, string> = {
   smooth: "Smooth Stretch",
-  flyover: "Flyover Corridor",
+  flyover: "Flyover",
+  "pothole-light": "Pothole Zone",
   "pothole-cluster": "Pothole Cluster",
-  "pothole-severe": "Severe Pothole Zone",
-  construction: "Construction Zone",
-  "speed-bump": "Speed Bump",
+  "pothole-severe": "Severe Potholes",
+  construction: "Road Damage",
+  "speed-hump": "Speed Hump",
 };
 
 const HAZARD_COLORS: Record<string, string> = {
   smooth: "#22c55e",
   flyover: "#60a5fa",
+  "pothole-light": "#F9A825",
   "pothole-cluster": "#ef4444",
   "pothole-severe": "#dc2626",
   construction: "#f97316",
-  "speed-bump": "#F9A825",
+  "speed-hump": "#eab308",
 };
 
-const ROAD_VISUALS: Record<string, string> = {
-  smooth: "🟢🟢🟢 ━━━━━━━━━━━━ 🟢🟢🟢",
-  flyover: "🔵 ╌╌╌╌╌╌╌╌╌╌╌╌ 🔵 (ELEVATED)",
-  "pothole-cluster": "⚫ ○ ⚫  ━━●━━●━━●━━  ⚫ ○ ⚫",
-  "pothole-severe": "🔴 ●●● ━━●━●━●━●━━ ●●● 🔴",
-  construction: "🚧━━━━━━━━━━━━━━━━━🚧",
-  "speed-bump": "▬▬▬▬▬▬▬▬▬▬ BUMP ▬▬▬▬▬▬▬▬▬▬",
+const ROAD_VISUALS: Record<string, string[]> = {
+  smooth: ["🟢 🟢 🟢", "━━━━━━━━━━━━", "🟢 🟢 🟢"],
+  flyover: ["🔵", "╌ ╌ ╌ ELEVATED ╌ ╌ ╌", "🔵"],
+  "pothole-light": ["⚫ ○", "━━●━━●━━", "○ ⚫"],
+  "pothole-cluster": ["🔴 ○ ⚫", "━●━●━●━●━", "⚫ ○ 🔴"],
+  "pothole-severe": ["🔴 ●●●", "━●━●━●━●━●━", "●●● 🔴"],
+  construction: ["🚧", "━━━━━━━━━━━━", "🚧"],
+  "speed-hump": ["▬▬▬", "BUMP", "▬▬▬"],
+};
+
+const SOURCE_BADGE: Record<string, { label: string; color: string; bg: string }> = {
+  "namma-pothole": { label: "Namma Pothole data", color: "#C2185B", bg: "rgba(194,24,91,0.15)" },
+  "osm": { label: "OpenStreetMap data", color: "#60a5fa", bg: "rgba(96,165,250,0.15)" },
 };
 
 export default function CheckpointCard({
@@ -48,124 +55,107 @@ export default function CheckpointCard({
 }: CheckpointCardProps) {
   const isPositive = checkpoint.integrityDelta >= 0;
   const hazardColor = HAZARD_COLORS[checkpoint.hazardType] ?? "#ffffff";
+  const source = SOURCE_BADGE[checkpoint.dataSource];
+  const visual = ROAD_VISUALS[checkpoint.hazardType] ?? ["•", "━━━━━━━━━━", "•"];
 
   return (
     <motion.div
-      className="absolute inset-x-0 bottom-0 z-50 px-3 pb-4"
-      initial={{ y: "100%", opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
-      exit={{ y: "100%", opacity: 0 }}
-      transition={{ type: "spring", damping: 20, stiffness: 120 }}
+      className="absolute inset-x-0 bottom-0 z-50 px-3 pb-3"
+      initial={{ y: "100%" }}
+      animate={{ y: 0 }}
+      exit={{ y: "100%" }}
+      transition={{ type: "spring", damping: 24, stiffness: 240 }}
     >
       <div
         className="glass-dark rounded-3xl overflow-hidden"
         style={{ border: `1px solid ${hazardColor}33` }}
       >
-        {/* Integrity impact flash banner */}
-        <motion.div
-          className="w-full py-2 px-4 flex items-center justify-between"
+        {/* Top banner — integrity delta */}
+        <div
+          className="flex items-center justify-between px-4 py-2"
           style={{
             background: isPositive
-              ? "linear-gradient(90deg, rgba(34,197,94,0.2), rgba(34,197,94,0.05))"
-              : "linear-gradient(90deg, rgba(239,68,68,0.2), rgba(239,68,68,0.05))",
-            borderBottom: `1px solid ${hazardColor}22`,
-            originX: 0,
+              ? "linear-gradient(90deg, rgba(34,197,94,0.18), transparent)"
+              : "linear-gradient(90deg, rgba(239,68,68,0.18), transparent)",
+            borderBottom: `1px solid ${hazardColor}18`,
           }}
-          initial={{ scaleX: 0 }}
-          animate={{ scaleX: 1 }}
-          transition={{ duration: 0.4, delay: 0.3 }}
         >
           <div className="flex items-center gap-2">
-            <span className="text-xs font-inter text-cream/60">Checkpoint {checkpointNumber}/{totalCheckpoints}</span>
             <span
-              className="text-xs font-inter font-bold px-1.5 py-0.5 rounded"
+              className="text-xs font-inter text-cream/50"
+            >
+              {checkpointNumber}/{totalCheckpoints}
+            </span>
+            <span
+              className="text-xs font-inter font-bold px-2 py-0.5 rounded-full"
               style={{
                 background: isPositive ? "rgba(34,197,94,0.2)" : "rgba(239,68,68,0.2)",
                 color: isPositive ? "#22c55e" : "#ef4444",
               }}
             >
-              {isPositive ? "+" : ""}{checkpoint.integrityDelta} Integrity
+              {isPositive ? "+" : ""}{checkpoint.integrityDelta} integrity
             </span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="text-xs text-cream/50 font-inter">Makeup:</span>
-            <span className="text-xs font-bold font-inter" style={{ color: integrityColor(makeupIntegrity) }}>
+            <span className="text-xs text-cream/40 font-inter">Makeup</span>
+            <span
+              className="text-xs font-bold font-inter tabular-nums"
+              style={{ color: integrityColor(makeupIntegrity) }}
+            >
               {makeupIntegrity}%
             </span>
           </div>
-        </motion.div>
+        </div>
 
-        <div className="px-5 pt-4 pb-5 flex flex-col gap-3">
-          {/* Hazard type label */}
-          <motion.div
-            className="flex items-center justify-between"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.15 }}
-          >
-            <div className="flex items-center gap-2">
+        <div className="px-5 pt-3 pb-4 flex flex-col gap-2.5">
+          {/* Hazard label + source */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <span
+              className="text-xs font-inter font-semibold px-2 py-0.5 rounded-full"
+              style={{ background: `${hazardColor}18`, color: hazardColor, border: `1px solid ${hazardColor}35` }}
+            >
+              {checkpoint.emoji} {HAZARD_LABELS[checkpoint.hazardType]}
+            </span>
+            {source && (
               <span
-                className="text-xs font-inter font-semibold px-2 py-0.5 rounded-full"
-                style={{ background: `${hazardColor}20`, color: hazardColor, border: `1px solid ${hazardColor}40` }}
+                className="text-xs font-inter font-medium px-2 py-0.5 rounded-full"
+                style={{ background: source.bg, color: source.color, border: `1px solid ${source.color}30` }}
               >
-                {checkpoint.emoji} {HAZARD_LABELS[checkpoint.hazardType]}
+                {source.label}
               </span>
-            </div>
-            <span className="text-sm text-champagne/40 font-inter">{checkpoint.collectibleName}</span>
-          </motion.div>
+            )}
+          </div>
 
-          {/* Witty headline — Playfair, large */}
-          <motion.h2
-            className="font-playfair text-xl font-bold text-cream leading-snug"
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.25, type: "spring", damping: 14 }}
-          >
+          {/* Headline */}
+          <h2 className="font-playfair text-xl font-bold text-cream leading-snug">
             {checkpoint.headline}
-          </motion.h2>
+          </h2>
 
           {/* Road visual */}
-          <motion.div
-            className="py-3 px-3 rounded-xl text-center font-mono text-sm"
-            style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.35 }}
+          <div
+            className="py-2.5 px-3 rounded-xl text-center font-mono"
+            style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}
           >
-            <span className="text-base">{ROAD_VISUALS[checkpoint.hazardType]}</span>
-            <p className="text-xs text-champagne/50 font-inter mt-1">{checkpoint.location}</p>
-          </motion.div>
+            <div className="flex items-center justify-center gap-3 text-sm">
+              <span>{visual[0]}</span>
+              <span className="text-cream/50">{visual[1]}</span>
+              <span>{visual[2]}</span>
+            </div>
+            <p className="text-xs text-champagne/45 font-inter mt-1">{checkpoint.location}</p>
+          </div>
 
           {/* Data line */}
-          <motion.p
-            className="font-inter text-xs text-cream/50 leading-relaxed"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.45 }}
-          >
+          <p className="font-inter text-xs text-cream/45 leading-relaxed">
             {checkpoint.dataLine}
-          </motion.p>
-
-          {/* Data source badge */}
-          <motion.div
-            className="flex items-center justify-between"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.5 }}
-          >
-            <AuthenticityBadge text={checkpoint.dataBadge} />
-          </motion.div>
+          </p>
 
           {/* Continue CTA */}
           <motion.button
-            className="w-full py-4 rounded-2xl font-inter font-bold text-base text-white mt-1"
+            className="w-full py-3.5 rounded-2xl font-inter font-bold text-sm text-white mt-1"
             style={{ background: "linear-gradient(135deg, #C2185B 0%, #FF4081 60%, #F9A825 100%)" }}
-            whileHover={{ scale: 1.03 }}
+            whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.97 }}
             onClick={onContinue}
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.6, type: "spring" }}
           >
             Continue Journey →
           </motion.button>

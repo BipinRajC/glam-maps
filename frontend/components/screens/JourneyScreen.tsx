@@ -28,17 +28,20 @@ export default function JourneyScreen({
   const [mapReady, setMapReady] = useState(false);
   const mascotElRef = useRef<HTMLDivElement>(null);
 
-  // Mutable journey state tracked via refs so animation callbacks don't go stale
-  const segIdxRef = useRef(0);
-  const cpIdxRef = useRef(0);
-  const pausedRef = useRef(false);
+  // All animation state in refs — never stale inside GSAP callbacks
   const gsapRef = useRef<typeof import("gsap")["gsap"] | null>(null);
-  const runningRef = useRef(false);
+  const animState = useRef({
+    segIdx: 0,
+    cpIdx: 0,
+    paused: false,
+    started: false,
+  });
 
-  // Load GSAP once
-  useEffect(() => {
-    import("gsap").then((mod) => { gsapRef.current = mod.gsap; });
-  }, []);
+  // Stable callbacks via refs — always current even inside old GSAP closures
+  const onReachCheckpointRef = useRef(onReachCheckpoint);
+  const onArriveRef = useRef(onArrive);
+  useEffect(() => { onReachCheckpointRef.current = onReachCheckpoint; }, [onReachCheckpoint]);
+  useEffect(() => { onArriveRef.current = onArrive; }, [onArrive]);
 
   const moveMascot = useCallback((lng: number, lat: number) => {
     mapRef.current?.moveMascotMarker([lng, lat]);
@@ -49,66 +52,91 @@ export default function JourneyScreen({
     }
   }, []);
 
-  const animateNextSegment = useCallback(() => {
+  // The animation loop — stored in a ref so GSAP onComplete always calls the latest version
+  const loopRef = useRef<() => void>(() => {});
+
+  // Rebuild the loop function every render (it closes over current route/refs)
+  loopRef.current = function runSegment() {
     const gsap = gsapRef.current;
-    if (!gsap || pausedRef.current) return;
+    const st = animState.current;
+    if (!gsap || st.paused) return;
 
     const polyline = route.polyline;
     const totalSegs = polyline.length - 1;
 
-    if (segIdxRef.current >= totalSegs) {
-      setTimeout(onArrive, 600);
+    if (st.segIdx >= totalSegs) {
+      setTimeout(() => onArriveRef.current(), 600);
       return;
     }
 
-    const from = polyline[segIdxRef.current];
-    const to = polyline[segIdxRef.current + 1];
+    const from = polyline[st.segIdx];
+    const to = polyline[st.segIdx + 1];
     const progress = { t: 0 };
 
     gsap.to(progress, {
       t: 1,
-      duration: 0.65,
+      duration: 0.7,
       ease: "none",
+      overwrite: "auto",
       onUpdate() {
         const lng = from[0] + (to[0] - from[0]) * progress.t;
         const lat = from[1] + (to[1] - from[1]) * progress.t;
         moveMascot(lng, lat);
       },
       onComplete() {
-        segIdxRef.current++;
-
-        const pctDone = (segIdxRef.current / totalSegs) * 100;
-        const cp = route.checkpoints[cpIdxRef.current];
+        st.segIdx++;
+        const pctDone = (st.segIdx / totalSegs) * 100;
+        const cp = route.checkpoints[st.cpIdx];
 
         if (cp && pctDone >= cp.progressPct) {
-          pausedRef.current = true;
-          onReachCheckpoint(cpIdxRef.current, cp.def.integrityDelta, cp.progressPct);
-          cpIdxRef.current++;
-          // Will resume when checkpoint is dismissed
+          st.paused = true;
+          onReachCheckpointRef.current(st.cpIdx, cp.def.integrityDelta, cp.progressPct);
+          st.cpIdx++;
+          // Will resume when checkpoint is dismissed (see useEffect below)
         } else {
-          animateNextSegment();
+          // Call via ref — always the current version
+          loopRef.current();
         }
       },
     });
-  // animateNextSegment intentionally omitted from deps — it's a recursive self-reference
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [route, moveMascot, onReachCheckpoint, onArrive]);
+  };
 
-  // Start journey when map is ready
+  // Load GSAP once
   useEffect(() => {
-    if (!mapReady || runningRef.current) return;
-    runningRef.current = true;
-    mapRef.current?.drawRoute(route);
-    setTimeout(animateNextSegment, 800);
-  }, [mapReady, route, animateNextSegment]);
+    import("gsap").then((mod) => { gsapRef.current = mod.gsap; });
+  }, []);
 
-  // Resume after checkpoint dismissed
+  // Start journey once map is ready and GSAP is loaded
   useEffect(() => {
-    if (!journeyState.activeCheckpointCard && pausedRef.current) {
-      pausedRef.current = false;
-      setTimeout(animateNextSegment, 450);
+    if (!mapReady) return;
+    if (animState.current.started) return;
+
+    // Poll for GSAP (it loads async)
+    const poll = setInterval(() => {
+      if (!gsapRef.current) return;
+      clearInterval(poll);
+      animState.current.started = true;
+      mapRef.current?.drawRoute(route);
+      setTimeout(() => loopRef.current(), 900);
+    }, 100);
+
+    return () => clearInterval(poll);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mapReady]);
+
+  // Resume after checkpoint card is dismissed
+  const prevActiveCard = useRef(false);
+  useEffect(() => {
+    const wasActive = prevActiveCard.current;
+    const isActive = journeyState.activeCheckpointCard;
+    prevActiveCard.current = isActive;
+
+    // Transition: active → not active = user dismissed
+    if (wasActive && !isActive && animState.current.paused) {
+      animState.current.paused = false;
+      setTimeout(() => loopRef.current(), 450);
     }
-  }, [journeyState.activeCheckpointCard, animateNextSegment]);
+  }, [journeyState.activeCheckpointCard]);
 
   const handleMapReady = useCallback(() => {
     setMapReady(true);
@@ -121,38 +149,38 @@ export default function JourneyScreen({
 
   return (
     <motion.div
-      className="relative w-full min-h-dvh overflow-hidden"
+      className="relative w-full min-h-dvh overflow-hidden bg-[#0D0D1E]"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
     >
-      {/* Full-screen map */}
-      <MapCanvas
-        ref={mapRef}
-        className="absolute inset-0 w-full h-full"
-        initialCenter={route.startCoords}
-        initialZoom={14}
-        onReady={handleMapReady}
-      />
+      {/* Map — always mounted, never unmounts */}
+      <div className="absolute inset-0">
+        <MapCanvas
+          ref={mapRef}
+          className="w-full h-full"
+          initialCenter={route.startCoords}
+          initialZoom={14}
+          onReady={handleMapReady}
+        />
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{ background: "linear-gradient(to top, rgba(13,10,30,0.9) 0%, rgba(13,10,30,0.3) 45%, transparent 70%)" }}
+        />
+      </div>
 
-      {/* Map gradient overlay */}
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{ background: "linear-gradient(to top, rgba(26,10,46,0.85) 0%, transparent 55%)" }}
-      />
-
-      {/* Mascot overlay div — repositioned by GSAP */}
+      {/* Mascot dot overlay — moved by GSAP via style.transform */}
       <div
         ref={mascotElRef}
-        className="absolute top-0 left-0 w-8 h-8 z-30 opacity-0 pointer-events-none"
-        style={{ willChange: "transform" }}
+        className="absolute top-0 left-0 z-30 opacity-0 pointer-events-none"
+        style={{ width: 32, height: 32, willChange: "transform" }}
       >
         <div
-          className="w-8 h-8 rounded-full flex items-center justify-center text-sm"
+          className="w-8 h-8 rounded-full flex items-center justify-center text-sm shadow-lg"
           style={{
             background: "linear-gradient(135deg, #C2185B, #FF4081)",
-            border: "2px solid #F9A825",
-            boxShadow: "0 0 16px rgba(255,64,129,0.8)",
+            border: "2.5px solid #F9A825",
+            boxShadow: "0 0 18px rgba(255,64,129,0.85)",
           }}
         >
           💄
@@ -162,70 +190,46 @@ export default function JourneyScreen({
       {/* Top HUD */}
       <div className="absolute top-4 left-3 right-3 z-20 flex flex-col gap-2">
         <motion.div
-          className="glass px-4 py-2 flex items-center gap-3"
-          initial={{ y: -20, opacity: 0 }}
+          className="glass px-4 py-2.5 flex items-center gap-2"
+          initial={{ y: -24, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.3 }}
+          transition={{ delay: 0.3, type: "spring", damping: 20 }}
         >
+          <span className="text-base">{route.emoji}</span>
           <span className="font-playfair text-sm font-bold text-cream flex-1 truncate">
-            {route.emoji} {route.glamName}
+            {route.glamName}
           </span>
-          <span className={`text-xs font-inter font-semibold px-2 py-0.5 rounded-full border ${getDifficultyBg(route.difficulty)}`}>
+          <span className={`text-xs font-inter font-semibold px-2 py-0.5 rounded-full border shrink-0 ${getDifficultyBg(route.difficulty)}`}>
             {route.difficulty}
           </span>
         </motion.div>
 
         {/* Progress bar */}
         <motion.div
-          className="glass px-3 py-2"
+          className="glass px-4 py-2"
           initial={{ y: -16, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.45 }}
+          transition={{ delay: 0.4, type: "spring", damping: 20 }}
         >
-          <div className="flex items-center justify-between mb-1.5">
-            <span className="font-inter text-xs text-cream/60">Route Progress</span>
-            <span className="font-inter text-xs font-bold text-cream">{Math.round(progressPct)}%</span>
+          <div className="flex items-center justify-between mb-1">
+            <span className="font-inter text-xs text-cream/55">Route Progress</span>
+            <span className="font-inter text-xs font-bold text-cream tabular-nums">{Math.round(progressPct)}%</span>
           </div>
-          <div className="h-1.5 rounded-full bg-white/10 overflow-hidden">
+          <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.1)" }}>
             <motion.div
               className="h-full rounded-full"
               style={{ background: "linear-gradient(90deg, #C2185B, #FF4081, #F9A825)" }}
-              animate={{ width: `${progressPct}%` }}
-              transition={{ duration: 0.6, ease: "easeOut" }}
+              animate={{ width: `${Math.max(progressPct, 2)}%` }}
+              transition={{ duration: 0.5, ease: "easeOut" }}
             />
           </div>
         </motion.div>
       </div>
 
-      {/* Bottom area */}
+      {/* Bottom area — stats bar OR checkpoint card (never both) */}
       <div className="absolute inset-x-0 bottom-0 z-20">
-        <AnimatePresence>
-          {!activeCheckpointCard && (
-            <motion.div
-              key="stats"
-              className="glass-dark mx-3 mb-3 px-4 py-3 rounded-2xl"
-              initial={{ y: 60, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: 60, opacity: 0 }}
-              transition={{ type: "spring", damping: 20 }}
-            >
-              <div className="grid grid-cols-3 gap-2 mb-2">
-                <StatItem value={`${route.stats.potholeCount}`} label="Pothole clusters" accent="red" />
-                <StatItem value={`${makeupIntegrity}%`} label="Makeup integrity" accent={makeupIntegrity > 70 ? "green" : makeupIntegrity > 40 ? "gold" : "red"} />
-                <StatItem value={`${route.stats.smoothCorridors}`} label="Smooth stretches" accent="blue" />
-              </div>
-              <p className="font-inter text-xs text-cream/40 leading-snug">
-                {route.stats.communityReports} community reports · {route.stats.hazardZones} hazard zones · last 14 days
-              </p>
-              <div className="mt-2">
-                <AuthenticityBadge variant="namma" size="sm" />
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        <AnimatePresence>
-          {activeCheckpointCard && activeCheckpoint && (
+        <AnimatePresence mode="wait">
+          {activeCheckpointCard && activeCheckpoint ? (
             <CheckpointCard
               key={`cp-${checkpointIndex}`}
               checkpoint={activeCheckpoint.def}
@@ -234,6 +238,36 @@ export default function JourneyScreen({
               makeupIntegrity={makeupIntegrity}
               onContinue={onDismissCheckpoint}
             />
+          ) : (
+            <motion.div
+              key="stats"
+              className="glass-dark mx-3 mb-3 px-4 py-3 rounded-2xl"
+              initial={{ y: 50, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 50, opacity: 0 }}
+              transition={{ type: "spring", damping: 22, stiffness: 200 }}
+            >
+              <div className="flex items-center gap-4 mb-2">
+                <StatItem
+                  value={`${makeupIntegrity}%`}
+                  label="Makeup integrity"
+                  accent={makeupIntegrity > 70 ? "green" : makeupIntegrity > 40 ? "gold" : "red"}
+                />
+                <div className="w-px h-8 bg-white/10" />
+                <StatItem
+                  value={`${route.stats.potholeCount}`}
+                  label="Pothole clusters"
+                  accent="red"
+                />
+                <div className="w-px h-8 bg-white/10" />
+                <StatItem
+                  value={`${route.stats.communityReports}`}
+                  label="Reports"
+                  accent="blue"
+                />
+              </div>
+              <AuthenticityBadge variant="namma" size="sm" />
+            </motion.div>
           )}
         </AnimatePresence>
       </div>
@@ -241,19 +275,11 @@ export default function JourneyScreen({
   );
 }
 
-function StatItem({
-  value,
-  label,
-  accent,
-}: {
-  value: string;
-  label: string;
-  accent: "green" | "gold" | "red" | "blue";
-}) {
+function StatItem({ value, label, accent }: { value: string; label: string; accent: "green" | "gold" | "red" | "blue" }) {
   const colors = { green: "#22c55e", gold: "#F9A825", red: "#ef4444", blue: "#60a5fa" };
   return (
-    <div className="flex flex-col items-center text-center gap-0.5">
-      <span className="font-inter text-sm font-bold" style={{ color: colors[accent] }}>{value}</span>
+    <div className="flex flex-col items-center gap-0.5 flex-1 text-center">
+      <span className="font-inter text-base font-bold tabular-nums" style={{ color: colors[accent] }}>{value}</span>
       <span className="font-inter text-xs text-cream/40 leading-tight">{label}</span>
     </div>
   );

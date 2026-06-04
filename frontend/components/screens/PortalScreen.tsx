@@ -1,193 +1,205 @@
 "use client";
 
 import { motion } from "framer-motion";
+import Link from "next/link";
 import Sparkles from "@/components/shared/Sparkles";
 import AuthenticityBadge from "@/components/shared/AuthenticityBadge";
+import { ROUTES } from "@/lib/routes";
+import { getDifficultyBg } from "@/lib/score";
 
 interface PortalScreenProps {
   onEnter: () => void;
   passport: string[];
 }
 
-const LEADERBOARD = [
-  { rank: 1, name: "Priya_Glam 💅", score: 94, route: "MG Road Strip", badge: "👑" },
-  { rank: 2, name: "RoadQueen_B 💋", score: 88, route: "Highlight Avenue", badge: "🥈" },
-  { rank: 3, name: "NeonNandini ✨", score: 81, route: "Glam Strip", badge: "🥉" },
-];
-
-const HALL_OF_SHAME = [
-  { name: "PotholePanic_Rao", score: 12, route: "Koramangala 💀" },
-  { name: "FoundationFailed", score: 8, route: "Survival Challenge" },
+// Route-based leaderboard — ranked by road quality score (higher = better roads)
+const ROUTE_LEADERBOARD = [
+  { routeId: "influencer", badge: "🥇" },
+  { routeId: "brunch",     badge: "🥈" },
+  { routeId: "survival",   badge: "💀" },
 ];
 
 export default function PortalScreen({ onEnter, passport }: PortalScreenProps) {
   return (
     <motion.div
-      className="relative flex flex-col items-center justify-between min-h-dvh w-full px-4 py-8 overflow-hidden"
+      className="relative flex flex-col items-center min-h-dvh w-full overflow-hidden"
       style={{ background: "linear-gradient(160deg, #1A1A2E 0%, #2D1535 60%, #1A1A2E 100%)" }}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      transition={{ duration: 0.5 }}
+      transition={{ duration: 0.4 }}
     >
       <Sparkles />
 
-      {/* Top passport strip */}
-      {passport.length > 0 && (
+      <div className="relative z-10 flex flex-col items-center w-full max-w-sm px-4 py-8 gap-5">
+        {/* Brand pill */}
         <motion.div
-          className="w-full flex items-center gap-2 justify-center mb-2"
-          initial={{ opacity: 0, y: -16 }}
+          className="flex items-center gap-2 px-3 py-1 rounded-full text-xs font-inter font-semibold"
+          style={{ background: "rgba(194,24,91,0.18)", border: "1px solid rgba(194,24,91,0.4)", color: "#FF4081" }}
+          initial={{ opacity: 0, y: -12 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
+          transition={{ delay: 0.2 }}
         >
-          <span className="text-xs text-champagne font-inter opacity-70">
-            {passport.length} route{passport.length > 1 ? "s" : ""} in your Glam Passport ✨
-          </span>
+          ✦ Flipkart Glam Up × Namma Pothole ✦
         </motion.div>
-      )}
 
-      {/* Hero card */}
-      <div className="flex-1 flex flex-col items-center justify-center w-full max-w-sm gap-6">
+        {/* Hero card */}
         <motion.div
-          className="relative glass w-full px-6 pt-8 pb-6 flex flex-col items-center gap-4 text-center"
-          initial={{ opacity: 0, y: 40, scale: 0.95 }}
+          className="relative glass w-full px-6 pt-7 pb-6 flex flex-col items-center gap-4 text-center"
+          initial={{ opacity: 0, y: 32, scale: 0.96 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ type: "spring", damping: 16, stiffness: 80, delay: 0.15 }}
+          transition={{ type: "spring", damping: 18, stiffness: 80, delay: 0.1 }}
         >
-          {/* Glitter border effect */}
+          {/* Animated gold border glow */}
           <motion.div
             className="absolute inset-0 rounded-[20px] pointer-events-none"
-            style={{
-              background: "linear-gradient(135deg, rgba(249,168,37,0.12) 0%, transparent 50%, rgba(194,24,91,0.12) 100%)",
-              border: "1px solid rgba(249,168,37,0.3)",
-            }}
-            animate={{ opacity: [0.6, 1, 0.6] }}
+            style={{ border: "1px solid rgba(249,168,37,0.25)", borderRadius: 20 }}
+            animate={{ opacity: [0.5, 1, 0.5] }}
             transition={{ duration: 3, repeat: Infinity }}
           />
 
-          {/* Logo / brand pill */}
           <motion.div
-            className="flex items-center gap-2 px-3 py-1 rounded-full text-xs font-inter font-semibold"
-            style={{ background: "rgba(194,24,91,0.2)", border: "1px solid rgba(194,24,91,0.4)", color: "#FF4081" }}
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.4 }}
-          >
-            ✦ Flipkart Glam Up × Namma Pothole ✦
-          </motion.div>
-
-          {/* Mascot silhouette big icon */}
-          <motion.div
-            className="text-8xl"
-            animate={{ y: [0, -8, 0] }}
+            className="text-7xl"
+            animate={{ y: [0, -6, 0] }}
             transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
           >
             💄
           </motion.div>
 
-          <motion.h1
-            className="font-playfair text-4xl font-bold text-cream leading-tight"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5 }}
-          >
-            Welcome to the<br />
-            <span style={{ background: "linear-gradient(90deg, #C2185B, #FF4081, #F9A825)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
-              Glamverse
-            </span>
-          </motion.h1>
-
-          <motion.p
-            className="font-inter text-sm text-cream/70 leading-relaxed"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.65 }}
-          >
-            Bengaluru&apos;s roads have opinions about your makeup.
-            <br />Let&apos;s find out which ones are on your side.
-          </motion.p>
+          <div>
+            <motion.h1
+              className="font-playfair text-4xl font-bold text-cream leading-tight mb-2"
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.35 }}
+            >
+              Welcome to the{" "}
+              <span style={{ background: "linear-gradient(90deg, #C2185B, #FF4081, #F9A825)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
+                Glamverse
+              </span>
+            </motion.h1>
+            <motion.p
+              className="font-inter text-sm text-cream/60 leading-relaxed"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.5 }}
+            >
+              Bengaluru&apos;s roads have opinions about your makeup.
+              <br />Let&apos;s find out which ones are on your side.
+            </motion.p>
+          </div>
 
           <motion.button
-            className="w-full py-4 rounded-2xl font-inter font-bold text-base text-white mt-2 relative overflow-hidden"
+            className="w-full py-4 rounded-2xl font-inter font-bold text-base text-white relative overflow-hidden"
             style={{ background: "linear-gradient(135deg, #C2185B 0%, #FF4081 50%, #F9A825 100%)" }}
-            whileHover={{ scale: 1.03 }}
+            whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.97 }}
             onClick={onEnter}
-            initial={{ opacity: 0, y: 16 }}
+            initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.75 }}
+            transition={{ delay: 0.6 }}
           >
+            {/* Shimmer sweep */}
             <motion.div
               className="absolute inset-0"
-              style={{ background: "linear-gradient(135deg, rgba(255,255,255,0.15) 0%, transparent 50%)" }}
+              style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.18), transparent)" }}
               animate={{ x: ["-100%", "200%"] }}
-              transition={{ duration: 2, repeat: Infinity, repeatDelay: 1 }}
+              transition={{ duration: 2, repeat: Infinity, repeatDelay: 1.5 }}
             />
             Enter the Glamverse ✨
           </motion.button>
+
+          {/* Passport link */}
+          {passport.length > 0 && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.75 }}>
+              <Link
+                href="/passport"
+                className="font-inter text-xs text-gold/80 hover:text-gold underline underline-offset-2 transition-colors"
+              >
+                ✦ {passport.length} route{passport.length > 1 ? "s" : ""} in your Glam Passport →
+              </Link>
+            </motion.div>
+          )}
+          {passport.length === 0 && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.75 }}>
+              <Link
+                href="/passport"
+                className="font-inter text-xs text-cream/30 hover:text-cream/50 transition-colors"
+              >
+                View Glam Passport →
+              </Link>
+            </motion.div>
+          )}
         </motion.div>
 
-        {/* Leaderboard */}
+        {/* Bengaluru Glam Leaderboard — route-based */}
         <motion.div
-          className="w-full glass px-5 py-4"
-          initial={{ opacity: 0, y: 30 }}
+          className="glass w-full px-5 py-4"
+          initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.9 }}
+          transition={{ delay: 0.75 }}
         >
           <div className="flex items-center justify-between mb-3">
-            <h3 className="font-playfair text-sm font-semibold text-cream">
-              Bengaluru Glam Leaderboard
-            </h3>
-            <span className="text-xs text-champagne/60 font-inter">Today</span>
+            <h3 className="font-playfair text-sm font-bold text-cream">Bengaluru Road Report</h3>
+            <span className="font-inter text-xs text-champagne/50">Route rankings</span>
           </div>
 
-          <div className="flex flex-col gap-2">
-            {LEADERBOARD.map((entry, i) => (
-              <motion.div
-                key={entry.rank}
-                className="flex items-center gap-3 py-1.5"
-                initial={{ opacity: 0, x: -16 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 1.0 + i * 0.1 }}
-              >
-                <span className="text-base w-6 text-center">{entry.badge}</span>
-                <span className="font-inter text-xs text-cream flex-1">{entry.name}</span>
-                <span className="font-inter text-xs text-champagne/60">{entry.route}</span>
-                <span
-                  className="font-inter text-sm font-bold tabular-nums"
-                  style={{ color: "#F9A825" }}
+          <div className="flex flex-col gap-2.5">
+            {ROUTE_LEADERBOARD.map(({ routeId, badge }, i) => {
+              const r = ROUTES[routeId];
+              return (
+                <motion.div
+                  key={routeId}
+                  className="flex items-center gap-3"
+                  initial={{ opacity: 0, x: -16 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.85 + i * 0.08 }}
                 >
-                  {entry.score}
-                </span>
-              </motion.div>
-            ))}
+                  <span className="text-lg w-7 text-center shrink-0">{badge}</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-inter text-xs font-semibold text-cream truncate">{r.glamName}</p>
+                    <p className="font-inter text-xs text-champagne/50 truncate">{r.realName}</p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className={`text-xs font-inter font-semibold px-1.5 py-0.5 rounded-full border ${getDifficultyBg(r.difficulty)}`}>
+                      {r.difficulty}
+                    </span>
+                    <div className="flex flex-col items-end">
+                      <span className="font-inter text-sm font-bold tabular-nums" style={{ color: roadScoreColor(r.roadScore) }}>
+                        {r.roadScore}
+                      </span>
+                      <span className="font-inter text-xs text-champagne/40 leading-none">/ 100</span>
+                    </div>
+                  </div>
+                </motion.div>
+              );
+            })}
           </div>
 
-          <div className="mt-3 pt-3 border-t border-champagne/10">
-            <p className="text-xs text-red-400 font-inter font-semibold mb-1">💀 Hall of Shame</p>
-            {HALL_OF_SHAME.map((entry, i) => (
-              <div key={i} className="flex items-center gap-2 py-0.5">
-                <span className="font-inter text-xs text-cream/50 flex-1">{entry.name}</span>
-                <span className="font-inter text-xs text-cream/40">{entry.route}</span>
-                <span className="font-inter text-xs font-bold text-red-500">{entry.score}</span>
-              </div>
-            ))}
+          <div className="mt-3 pt-2.5 border-t border-champagne/10 flex items-center gap-1.5">
+            <span className="text-xs text-champagne/40 font-inter">Road score = inverse of pothole density</span>
           </div>
         </motion.div>
-      </div>
 
-      {/* Footer */}
-      <motion.div
-        className="mt-4 flex flex-col items-center gap-2"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 1.2 }}
-      >
-        <AuthenticityBadge variant="powered" />
-        <p className="text-xs text-cream/30 font-inter text-center">
-          Road data powered by Namma Pothole community reports 🗺️
-        </p>
-      </motion.div>
+        {/* Footer */}
+        <motion.div
+          className="flex flex-col items-center gap-2"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1.0 }}
+        >
+          <AuthenticityBadge variant="powered" />
+          <p className="font-inter text-xs text-cream/25 text-center">
+            Road data powered by Namma Pothole 🗺️
+          </p>
+        </motion.div>
+      </div>
     </motion.div>
   );
+}
+
+function roadScoreColor(score: number): string {
+  if (score >= 80) return "#22c55e";
+  if (score >= 60) return "#F9A825";
+  return "#ef4444";
 }
