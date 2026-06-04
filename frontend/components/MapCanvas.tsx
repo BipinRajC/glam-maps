@@ -42,7 +42,7 @@ const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(
 
         map = new ml.Map({
           container: containerRef.current!,
-          style: "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json",
+          style: "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",
           center: initialCenter,
           zoom: initialZoom,
           attributionControl: false,

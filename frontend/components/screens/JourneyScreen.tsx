@@ -128,7 +128,7 @@ export default function JourneyScreen({
 
   return (
     <motion.div
-      className="relative w-full min-h-dvh overflow-hidden bg-[#0D0D1E]"
+      className="relative w-full min-h-dvh overflow-hidden bg-[#f0f0ff]"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -144,7 +144,7 @@ export default function JourneyScreen({
         />
         <div
           className="absolute inset-0 pointer-events-none"
-          style={{ background: "linear-gradient(to top, rgba(13,10,30,0.88) 0%, rgba(13,10,30,0.2) 45%, transparent 65%)" }}
+          style={{ background: "linear-gradient(to top, rgba(240,240,255,0.6) 0%, rgba(240,240,255,0.1) 35%, transparent 55%)" }}
         />
       </div>
 
