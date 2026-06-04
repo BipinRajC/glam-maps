@@ -29,7 +29,6 @@ export default function JourneyScreen({
   const [journeyStarted, setJourneyStarted] = useState(false);
   const gsapRef = useRef<typeof import("gsap")["gsap"] | null>(null);
   const mascotElRef = useRef<HTMLDivElement>(null);
-  const animRef = useRef<ReturnType<typeof import("gsap")["gsap"]["to"]> | null>(null);
   const checkpointQueueRef = useRef<number[]>([]);
   const pausedRef = useRef(false);
 
@@ -73,7 +72,7 @@ export default function JourneyScreen({
       const progress = { t: 0 };
       const gsap = gsapRef.current!;
 
-      animRef.current = gsap.to(progress, {
+      gsap.to(progress, {
         t: 1,
         duration: 0.6,
         ease: "none",
