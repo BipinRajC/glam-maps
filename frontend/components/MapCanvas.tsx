@@ -46,7 +46,7 @@ const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(
           center: initialCenter,
           zoom: initialZoom,
           attributionControl: false,
-          interactive: false, // map is a backdrop — no user panning
+          interactive: true, // allow pan/zoom in journey screen
         });
 
         mapRef.current = map;
