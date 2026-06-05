@@ -56,16 +56,10 @@ ROAD_TYPE_PENALTIES = {
     'service': 25,
 }
 
-# Keys are (start_waypoint_id, end_waypoint_id).
-# Fill in for known waypoint pairs; unknown pairs fall back to "secondary".
-ROUTE_ROAD_TYPES: dict[tuple[int, int], str] = {
-    # (14, 8): "primary",
-    # (14, 3): "secondary",
-}
 
-
-def _get_road_type_for_route(start_id: int, end_id: int) -> str:
-    return ROUTE_ROAD_TYPES.get((start_id, end_id), 'secondary')
+def _get_road_type_for_route() -> str:
+    # TODO: derive from OSM data along the route geometry
+    return 'secondary'
 
 
 def _calculate_road_penalty(osm_highway_type: str) -> float:
@@ -96,7 +90,7 @@ async def get_glam_score(
     # TODO: implement traffic penalty once Route model has duration columns
     traffic_penalty = 0.0
 
-    road_type = _get_road_type_for_route(route.start_waypoint_id, route.end_waypoint_id)
+    road_type = _get_road_type_for_route()
     road_penalty = _calculate_road_penalty(road_type)
 
     raw_score = 100 - pothole_penalty - traffic_penalty - road_penalty

@@ -1,26 +1,12 @@
 from pydantic import BaseModel, Field
 
 
-# --- Snap to Waypoint ---
-class WaypointInput(BaseModel):
-    lat: float = Field(ge=-90, le=90, description="Latitude of the user's location.")
-    lng: float = Field(ge=-180, le=180, description="Longitude of the user's location.")
-
-
-class WaypointResponse(BaseModel):
-    id: int = Field(gt=0, description='Unique identifier of the snapped waypoint.')
-    name: str = Field(description='Display name of the waypoint.')
-    lat: float = Field(ge=-90, le=90, description='Latitude of the waypoint.')
-    lng: float = Field(ge=-180, le=180, description='Longitude of the waypoint.')
-    distance_meters: float = Field(
-        ge=0, description='Distance from the requested coordinates to the waypoint.'
-    )
-
-
 # --- Route ---
 class RouteRequest(BaseModel):
-    start_waypoint_id: int = Field(gt=0, description='ID of the origin waypoint.')
-    end_waypoint_id: int = Field(gt=0, description='ID of the destination waypoint.')
+    start_lat: float = Field(ge=-90, le=90, description='Latitude of the origin.')
+    start_lng: float = Field(ge=-180, le=180, description='Longitude of the origin.')
+    end_lat: float = Field(ge=-90, le=90, description='Latitude of the destination.')
+    end_lng: float = Field(ge=-180, le=180, description='Longitude of the destination.')
 
 
 class RouteResponse(BaseModel):
@@ -29,6 +15,9 @@ class RouteResponse(BaseModel):
     )
     encoded_polyline: str = Field(
         description='Google Maps encoded polyline string for frontend rendering.'
+    )
+    checkpoints: list['CheckpointResponse'] = Field(
+        description='Ordered checkpoints along the route (pothole clusters + smooth stretches).'
     )
 
 
@@ -41,15 +30,23 @@ class CheckpointResponse(BaseModel):
     lng: float = Field(
         ge=-180, le=180, description='Longitude of the checkpoint cluster center.'
     )
+    checkpoint_type: str = Field(
+        description="Type of checkpoint: 'pothole', 'smooth', or 'traffic'."
+    )
     image_url: str | None = Field(
         None,
-        description='URL to the Supabase S3 bucket image (null if smooth stretch).',
+        description='URL to the Supabase S3 bucket image (null if not a pothole checkpoint).',
     )
     message: str = Field(
-        description='Playful notification string mapped to the cluster type.'
+        description='Playful notification string mapped to the checkpoint type.'
     )
-    is_smooth_stretch: bool = Field(
-        description='True if this checkpoint represents a lack of potholes.'
+    traffic_speed: str | None = Field(
+        None,
+        description="Traffic speed level: 'NORMAL', 'SLOW', or 'TRAFFIC_JAM' (null for non-traffic checkpoints).",
+    )
+    pothole_count: int = Field(
+        default=0,
+        description='Number of potholes in this cluster (0 for non-pothole checkpoints).',
     )
 
 
@@ -65,13 +62,3 @@ class GlamScoreResponse(BaseModel):
     road_penalty: float = Field(
         ge=0, description='Deduction amount based on OSM road classification.'
     )
-
-
-# --- Obstacle ---
-class ObstacleResponse(BaseModel):
-    id: int = Field(description='OpenStreetMap node ID of the obstacle.')
-    obstacle_type: str = Field(
-        description="Classification of the hazard (e.g., 'bump', 'hump', 'crossing', 'rumble_strip')."
-    )
-    lat: float = Field(ge=-90, le=90, description='Latitude of the obstacle.')
-    lng: float = Field(ge=-180, le=180, description='Longitude of the obstacle.')

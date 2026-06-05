@@ -1,8 +1,8 @@
 """
 Service layer for calling the Google Maps Routes API v2 (REST).
 
-Uses the computeRoutes endpoint with an API key to get an encoded polyline
-and distance between two lat/lng pairs.
+Uses the computeRoutes endpoint with an API key to get an encoded polyline,
+distance, and traffic speed intervals between two lat/lng pairs.
 """
 
 import httpx
@@ -24,13 +24,18 @@ async def compute_route(
     Returns a dict with keys:
         - encoded_polyline: str
         - distance_meters: int | None
+        - speed_intervals: list[dict]  (speedReadingIntervals from traffic)
 
     Raises httpx.HTTPStatusError on non-2xx responses.
     """
     headers = {
         'Content-Type': 'application/json',
         'X-Goog-Api-Key': settings.GOOGLE_MAPS_ROUTES_API,
-        'X-Goog-FieldMask': 'routes.distanceMeters,routes.polyline.encodedPolyline',
+        'X-Goog-FieldMask': (
+            'routes.distanceMeters,'
+            'routes.polyline.encodedPolyline,'
+            'routes.travelAdvisory.speedReadingIntervals'
+        ),
     }
 
     payload = {
@@ -46,6 +51,7 @@ async def compute_route(
         },
         'travelMode': 'DRIVE',
         'routingPreference': 'TRAFFIC_AWARE',
+        'extraComputations': ['TRAFFIC_ON_POLYLINE'],
     }
 
     async with httpx.AsyncClient(timeout=15.0) as client:
@@ -59,7 +65,10 @@ async def compute_route(
     data = resp.json()
     route = data['routes'][0]
 
+    speed_intervals = route.get('travelAdvisory', {}).get('speedReadingIntervals', [])
+
     return {
         'encoded_polyline': route['polyline']['encodedPolyline'],
         'distance_meters': route.get('distanceMeters'),
+        'speed_intervals': speed_intervals,
     }
