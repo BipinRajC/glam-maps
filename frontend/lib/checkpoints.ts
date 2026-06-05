@@ -5,7 +5,9 @@ export type HazardType =
   | "pothole-cluster"
   | "pothole-severe"
   | "construction"
-  | "speed-hump";
+  | "speed-hump"
+  | "water-logging"
+  | "gravel-stretch";
 
 export type DataSource = "namma-pothole" | "osm";
 
@@ -25,7 +27,6 @@ export interface CheckpointDef {
 }
 
 export const CHECKPOINT_DEFS: Record<string, CheckpointDef> = {
-  // ── OSM-sourced (smooth/infrastructure) ──────────────────────────────
   highlight_haven: {
     id: "highlight_haven",
     collectibleName: "Highlight Haven",
@@ -54,8 +55,6 @@ export const CHECKPOINT_DEFS: Record<string, CheckpointDef> = {
     dataLine: "Smooth corridor · 0 pothole reports in last 30 days · road quality: good",
     location: "Ulsoor Smooth Corridor",
   },
-
-  // ── OSM-sourced (humps) ───────────────────────────────────────────────
   lipstick_hump: {
     id: "lipstick_hump",
     collectibleName: "Lipstick Survival Checkpoint",
@@ -84,8 +83,6 @@ export const CHECKPOINT_DEFS: Record<string, CheckpointDef> = {
     dataLine: "Active construction zone · surface broken · OSM road class: secondary under repair",
     location: "Domlur Junction",
   },
-
-  // ── Namma Pothole sourced (pothole data) ──────────────────────────────
   pothole_light: {
     id: "pothole_light",
     collectibleName: "Mascara Wobble Zone",
@@ -127,5 +124,33 @@ export const CHECKPOINT_DEFS: Record<string, CheckpointDef> = {
     dataBadge: "Cluster of 4 reports within 50m · Severity: High",
     dataLine: "4 potholes reported · avg severity 8.5/10 · last 7 days · community-flagged danger zone",
     location: "Koramangala 4th Block",
+  },
+  water_logging: {
+    id: "water_logging",
+    collectibleName: "Foundation Flood Zone",
+    hazardType: "water-logging",
+    dataSource: "namma-pothole",
+    emoji: "🌊",
+    markerColor: "orange",
+    pulse: true,
+    integrityDelta: -10,
+    headline: "Water logging ahead. Say goodbye to that base.",
+    dataBadge: "Reported by 5 Namma Pothole users · verified 3 days ago",
+    dataLine: "Standing water · 30m stretch · depth 15cm · last rain: 2 days ago",
+    location: "HSR Layout BDA Complex",
+  },
+  gravel_stretch: {
+    id: "gravel_stretch",
+    collectibleName: "Blush Scatter Zone",
+    hazardType: "gravel-stretch",
+    dataSource: "osm",
+    emoji: "🪨",
+    markerColor: "yellow",
+    pulse: true,
+    integrityDelta: -8,
+    headline: "Gravel road. Your blush just went off-road.",
+    dataBadge: "Source: OpenStreetMap · surface: gravel",
+    dataLine: "Unpaved stretch · 200m · OSM surface tag: gravel",
+    location: "Yelahanka Old Town",
   },
 };
