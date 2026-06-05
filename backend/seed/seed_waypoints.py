@@ -8,12 +8,13 @@ Run from the backend/ directory:
     uv run python seed/seed_waypoints.py
 """
 
+import asyncio
 import sys
 from pathlib import Path
 
 from geoalchemy2 import WKTElement
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 # ---------------------------------------------------------------------------
 # Resolve DATABASE_URL the same way the app does (reads .env if present)
@@ -67,51 +68,51 @@ BENGALURU_WAYPOINTS = [
 ]
 
 
-def main() -> None:
+async def main() -> None:
     print(f'[INFO] Total waypoints to process: {len(BENGALURU_WAYPOINTS)}')
 
-    engine = create_engine(settings.DATABASE_URL, pool_pre_ping=True)
+    engine = create_async_engine(settings.DATABASE_URL, pool_pre_ping=True)
 
     # Ensure the table exists (safe no-op if already created by the app)
-    Base.metadata.create_all(bind=engine)
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
 
-    Session = sessionmaker(bind=engine)
-    session = Session()
+    AsyncSession = async_sessionmaker(bind=engine, expire_on_commit=False)
 
     inserted = 0
     skipped = 0
 
     try:
-        # Build a set of existing names to avoid N individual SELECT queries
-        existing_names: set[str] = {
-            name for (name,) in session.query(Waypoint.name).all()
-        }
+        async with AsyncSession() as session:
+            # Build a set of existing names to avoid N individual SELECT queries
+            result = await session.execute(select(Waypoint.name))
+            existing_names: set[str] = {name for (name,) in result.all()}
 
-        for wp in BENGALURU_WAYPOINTS:
-            if wp['name'] in existing_names:
-                skipped += 1
-                continue
+            for wp in BENGALURU_WAYPOINTS:
+                if wp['name'] in existing_names:
+                    skipped += 1
+                    continue
 
-            session.add(
-                Waypoint(
-                    name=wp['name'],
-                    geom=WKTElement(f'POINT({wp["lng"]} {wp["lat"]})', srid=4326),
+                session.add(
+                    Waypoint(
+                        name=wp['name'],
+                        geom=WKTElement(f'POINT({wp["lng"]} {wp["lat"]})', srid=4326),
+                    )
                 )
-            )
-            existing_names.add(wp['name'])  # guard against duplicates in the list
-            inserted += 1
+                existing_names.add(wp['name'])  # guard against duplicates in the list
+                inserted += 1
 
-        session.commit()
+            await session.commit()
+
         print(
             f'[INFO] Done. Inserted: {inserted} | Already existed (skipped): {skipped}'
         )
     except Exception as exc:
-        session.rollback()
         print(f'[ERROR] {exc}', file=sys.stderr)
         sys.exit(1)
     finally:
-        session.close()
+        await engine.dispose()
 
 
 if __name__ == '__main__':
-    main()
+    asyncio.run(main())

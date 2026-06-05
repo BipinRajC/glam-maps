@@ -1,22 +1,22 @@
 """
 Seed script: parse complaints.json and populate the potholes table.
 
-Only records with validationStatus 'pending' or 'approved' are inserted.
-Uses INSERT ... ON CONFLICT DO NOTHING for idempotent deduplication on _id.
+Only records with validationStatus 'approved' are inserted.
+Uses existence check on primary key for idempotent deduplication on _id.
 
 Run from the backend/ directory:
     uv run python seed/seed_potholes.py [--json path/to/complaints.json]
 """
 
 import argparse
+import asyncio
 import json
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
 from geoalchemy2 import WKTElement
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 # ---------------------------------------------------------------------------
 # Resolve DATABASE_URL the same way the app does (reads .env if present)
@@ -42,7 +42,7 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def main() -> None:
+async def main() -> None:
     args = parse_args()
 
     if not args.json.exists():
@@ -58,58 +58,57 @@ def main() -> None:
 
     # Filter by validationStatus
     eligible = [r for r in records if r.get('validationStatus') in ALLOWED_STATUSES]
-    print(f'[INFO] Eligible (pending/approved): {len(eligible)}')
+    print(f'[INFO] Eligible (approved): {len(eligible)}')
 
-    engine = create_engine(settings.DATABASE_URL, pool_pre_ping=True)
+    engine = create_async_engine(settings.DATABASE_URL, pool_pre_ping=True)
 
     # Ensure the table exists (safe no-op if already created by the app)
-    Base.metadata.create_all(bind=engine)
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
 
-    Session = sessionmaker(bind=engine)
-    session = Session()
+    AsyncSession = async_sessionmaker(bind=engine, expire_on_commit=False)
 
     inserted = 0
     skipped = 0
 
     try:
-        for record in eligible:
-            pothole_id: str = record['_id']
-            lat: float = record['latitude']
-            lng: float = record['longitude']
-            image_url: str | None = record.get('imageUrl')
-            timestamp: int = record['timestamp']
+        async with AsyncSession() as session:
+            for record in eligible:
+                pothole_id: str = record['_id']
+                lat: float = record['latitude']
+                lng: float = record['longitude']
+                image_url: str | None = record.get('imageUrl')
+                timestamp: int = record['timestamp']
 
-            reported_at = datetime.fromtimestamp(timestamp, tz=timezone.utc)
+                reported_at = datetime.fromtimestamp(timestamp, tz=timezone.utc)
 
-            pothole = Pothole(
-                id=pothole_id,
-                image_url=image_url,
-                geom=WKTElement(f'POINT({lng} {lat})', srid=4326),
-                severity_score=1,
-                reported_at=reported_at,
-            )
+                existing = await session.get(Pothole, pothole_id)
+                if existing is not None:
+                    skipped += 1
+                    continue
 
-            # merge() does INSERT or UPDATE based on PK; we want INSERT-only dedup.
-            # Use low-level ON CONFLICT DO NOTHING via raw SQL for efficiency,
-            # but here we check existence first to keep it ORM-friendly.
-            existing = session.get(Pothole, pothole_id)
-            if existing is None:
-                session.add(pothole)
+                session.add(
+                    Pothole(
+                        id=pothole_id,
+                        image_url=image_url,
+                        geom=WKTElement(f'POINT({lng} {lat})', srid=4326),
+                        severity_score=1,
+                        reported_at=reported_at,
+                    )
+                )
                 inserted += 1
-            else:
-                skipped += 1
 
-        session.commit()
+            await session.commit()
+
         print(
             f'[INFO] Done. Inserted: {inserted} | Already existed (skipped): {skipped}'
         )
     except Exception as exc:
-        session.rollback()
         print(f'[ERROR] {exc}', file=sys.stderr)
         sys.exit(1)
     finally:
-        session.close()
+        await engine.dispose()
 
 
 if __name__ == '__main__':
-    main()
+    asyncio.run(main())

@@ -15,27 +15,23 @@ async def lifespan(app: FastAPI):
     # This block executes on startup
     logger.info(f'Starting up {settings.PROJECT_NAME}...')
     try:
-        with engine.connect() as _connection:
+        async with engine.begin() as conn:
             logger.info('Successfully connected to the database.')
-        Base.metadata.create_all(bind=engine)
-        logger.info('Database tables created (or already exist).')
+            # run_sync wraps the synchronous create_all call for the async engine
+            await conn.run_sync(Base.metadata.create_all)
+            logger.info('Database tables created (or already exist).')
     except Exception as e:
         logger.error(f'Failed to connect to the database: {e}')
 
     yield
     # This block executes on shutdown
     logger.info(f'Shutting down {settings.PROJECT_NAME}...')
+    await engine.dispose()
 
 
 app = FastAPI(title=settings.PROJECT_NAME, lifespan=lifespan)
 
 app.include_router(routes.router, prefix='/api')
-
-
-@app.get('/')
-def read_root():
-    return {'message': f'Welcome to {settings.PROJECT_NAME}'}
-
 
 if __name__ == '__main__':
     uvicorn.run(

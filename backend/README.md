@@ -1,67 +1,131 @@
-# FastAPI Backend
+# Glam Maps — Backend
 
-This is the backend API for the project, built with [FastAPI](https://fastapi.tiangolo.com/).
+FastAPI backend for Glam Maps. Handles waypoint snapping, route generation, pothole checkpoint clustering, and Glam Score calculation using PostGIS spatial queries.
+
+## Tech Stack
+
+| Layer | Technology |
+|---|---|
+| Framework | FastAPI |
+| Database | PostgreSQL + PostGIS (spatial queries) |
+| ORM | SQLAlchemy 2.0 (async) + asyncpg driver |
+| Schemas | Pydantic v2 |
+| Package manager | `uv` |
+| Linter / Formatter | Ruff |
+
+## Prerequisites
+
+- Python 3.11+
+- [`uv`](https://docs.astral.sh/uv/) installed
+- PostgreSQL with the PostGIS extension enabled
 
 ## Setup
-
-We use `uv` for dependency management and running the application. Make sure you have `uv` installed.
-
-To install dependencies (both standard and development), navigate to the `backend` directory and run:
 
 ```bash
 cd backend
 uv sync
 ```
-*Note: `uv sync` automatically installs all dependencies declared in `pyproject.toml`, including dev dependencies such as Ruff.*
 
-## Code Quality & Formatting
+Copy `.env.example` to `.env` (or edit `.env` directly) and fill in your values:
 
-We use `ruff` for linting, code formatting, and import sorting. Before making any commit, please ensure your code is properly formatted by running:
+```env
+DATABASE_URL="postgresql+asyncpg://postgres:password@localhost:5432/glammaps"
+GOOGLE_MAPS_ROUTES_API="your_api_key_here"
+PORT=8000
+HOST="0.0.0.0"
+ENV="dev"
+```
+
+> **Important:** The `DATABASE_URL` must use the `postgresql+asyncpg://` scheme. The plain `postgresql://` scheme will fail because the app uses SQLAlchemy's async engine.
+
+## Running the Server
+
+```bash
+cd backend
+uv run main.py
+```
+
+The server starts on the port set in `PORT` (default: `8000`). On startup it automatically creates any missing database tables.
+
+Hot-reload is active when `ENV=dev`.
+
+## API Documentation
+
+Once the server is running:
+
+| URL | Description |
+|---|---|
+| `http://localhost:8000/api/health` | Health check |
+| `http://localhost:8000/docs` | Interactive Swagger UI |
+| `http://localhost:8000/redoc` | ReDoc |
+
+## Seeding the Database
+
+Seed scripts live in `backend/seed/`. Run them **from the `backend/` directory** after the database is up. They use the `DATABASE_URL` from your `.env` automatically and share the same async engine as the app.
+
+### 1. Waypoints
+
+Populates the `waypoints` table with 37 Bengaluru transit nodes. Safe to re-run — existing rows (matched by name) are skipped.
+
+```bash
+uv run python seed/seed_waypoints.py
+```
+
+### 2. Potholes
+
+Populates the `potholes` table from `seed/complaints.json` (sourced from MongoDB). Only records with `validationStatus: "approved"` are inserted. Safe to re-run — existing rows (matched by MongoDB `_id`) are skipped.
+
+```bash
+# Default: reads seed/complaints.json
+uv run python seed/seed_potholes.py
+
+# Custom JSON path
+uv run python seed/seed_potholes.py --json /path/to/complaints.json
+```
+
+**Recommended seed order:** waypoints → potholes.
+
+## Project Structure
+
+```
+backend/
+├── app/
+│   ├── api/
+│   │   └── routes.py        # Route handlers (/health, /route)
+│   ├── core/
+│   │   ├── config.py        # Settings (reads from .env via pydantic-settings)
+│   │   ├── database.py      # Async engine + AsyncSession + get_db dependency
+│   │   └── logger.py        # Logging setup
+│   ├── models/
+│   │   └── models.py        # SQLAlchemy ORM models (Waypoint, Route, Pothole, Obstacle)
+│   ├── schemas/
+│   │   └── schemas.py       # Pydantic request/response schemas
+│   └── services/
+│       └── routing.py       # Google Maps Routes API client
+├── seed/
+│   ├── complaints.json      # Raw pothole data (from MongoDB)
+│   ├── seed_waypoints.py    # Seeds the waypoints table
+│   └── seed_potholes.py     # Seeds the potholes table
+├── main.py                  # FastAPI app + lifespan (DB init)
+└── pyproject.toml
+```
+
+## Implemented Endpoints
+
+| Method | Path | Status | Description |
+|---|---|---|---|
+| `GET` | `/api/health` | ✅ Done | Health check |
+| `POST` | `/api/route` | ✅ Done | Generate / cache a route between two waypoints via Google Maps |
+| `POST` | `/api/snap-to-point` | 🔲 Pending | Snap raw GPS to nearest waypoint |
+| `GET` | `/api/checkpoints/{route_id}` | 🔲 Pending | Clustered pothole checkpoints along a route |
+| `GET` | `/api/glam-score/{route_id}` | 🔲 Pending | 1–100 glamour-friendliness score for a route |
+
+## Code Quality
+
+Before committing, run:
 
 ```bash
 cd backend
 uv run ruff check --fix .
 uv run ruff format .
 ```
-
-This will automatically format strings to single quotes and sort your imports.
-
-## Folder Structure
-
-The application is structured for scalability and separation of concerns:
-
-```
-backend/
-├── app/
-│   ├── api/             # API endpoints and routers (Traffic controllers)
-│   ├── core/            # Application settings like DB connection or env variables setup
-│   ├── models/          # Database definitions (e.g., SQLAlchemy models)
-│   ├── schemas/         # Pydantic schemas for request/response validation 
-│   ├── services/        # Business logic containing reusable functions
-│   └── main.py          # FastAPI app instantiation
-├── pyproject.toml       # Project dependencies
-└── README.md
-```
-
-## Running the Backend
-
-Ensure you are in the `backend` directory. The server will run on the port specified in the `PORT` environment variable (default: 8000).
-
-### Development Mode
-Run with hot-reloading enabled for development:
-```bash
-uv run main.py
-```
-
-### Production Mode
-Run the application directly:
-```bash
-uv run main
-```
-
-## API Documentation
-
-Once the server is running, you can access:
-* **Root API:** http://127.0.0.1:8000/
-* **Health Check:** http://127.0.0.1:8000/api/health
-* **Interactive Swagger Docs:** http://127.0.0.1:8000/docs
