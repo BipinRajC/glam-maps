@@ -14,11 +14,6 @@ from app.services.routing import compute_route
 router = APIRouter()
 
 
-@router.get('/health')
-def health_check():
-    return {'status': 'ok'}
-
-
 @router.post('/route', response_model=RouteResponse)
 async def generate_route(body: RouteRequest, db: AsyncSession = Depends(get_db)):
     """Generate or retrieve a cached route between two waypoints."""
