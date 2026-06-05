@@ -3,23 +3,17 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { GlamRoute } from "@/lib/routes";
-import type { HazardType } from "@/lib/checkpoints";
 import type { JourneyState } from "@/lib/journeyMachine";
 import { Camera, Map } from "lucide-react";
 import MapCanvas, { type MapCanvasHandle } from "@/components/MapCanvas";
 import CheckpointCard from "@/components/CheckpointCard";
 import AuthenticityBadge from "@/components/shared/AuthenticityBadge";
 import { getDifficultyBg } from "@/lib/score";
+import { haversineMeters, formatDistance } from "@/lib/routeCalc";
+import { getCheckpointBanner } from "@/lib/commentary";
+import type { HazardType } from "@/lib/checkpoints";
 
-const CHECKPOINT_WITTIES: Record<HazardType, string> = {
-  smooth:             "Makeup intact. Rare Bengaluru sighting ✨",
-  flyover:            "No lipstick zone up here ⬆️",
-  "pothole-light":    "Slight wobble. Hold your brushes 💄",
-  "pothole-cluster":  "Foundation has left the chat 😭",
-  "pothole-severe":   "RIP contour. No survivors 💀",
-  construction:       "Road work? More like face work 🚧",
-  "speed-hump":       "Lipstick exit: confirmed 💋",
-};
+const CHECKPOINT_PROXIMITY_M = 50;
 
 interface JourneyScreenProps {
   route: GlamRoute;
@@ -42,27 +36,18 @@ export default function JourneyScreen({
   const [brightnessOverlay, setBrightnessOverlay] = useState(0.22);
   const [cameraState, setCameraState] = useState<"idle" | "ready" | "blocked">("idle");
   const [nextCheckpointDistanceM, setNextCheckpointDistanceM] = useState<number | null>(null);
+  const [checkpointBanner, setCheckpointBanner] = useState<string | null>(null);
   const cameraVideoRef = useRef<HTMLVideoElement>(null);
   const cameraStreamRef = useRef<MediaStream | null>(null);
   const currentCoordsRef = useRef<[number, number]>(route.startCoords);
+  const watchIdRef = useRef<number | null>(null);
+  const nextCpIdxRef = useRef(0);
+  const arrivedRef = useRef(false);
 
-  const gsapRef = useRef<typeof import("gsap")["gsap"] | null>(null);
-  const animState = useRef({ segIdx: 0, cpIdx: 0, paused: false, started: false });
-
-  // Always-current callbacks — stable refs prevent stale closures inside GSAP
   const onReachCheckpointRef = useRef(onReachCheckpoint);
   const onArriveRef = useRef(onArrive);
   useEffect(() => { onReachCheckpointRef.current = onReachCheckpoint; }, [onReachCheckpoint]);
   useEffect(() => { onArriveRef.current = onArrive; }, [onArrive]);
-
-  const updateNextCheckpointDistance = useCallback((coords: [number, number]) => {
-    const nextCp = route.checkpoints[animState.current.cpIdx];
-    if (!nextCp) {
-      setNextCheckpointDistanceM(0);
-      return;
-    }
-    setNextCheckpointDistanceM(Math.round(haversineMeters(coords, nextCp.coords)));
-  }, [route.checkpoints]);
 
   const stopCamera = useCallback(() => {
     cameraStreamRef.current?.getTracks().forEach((track) => track.stop());
@@ -92,69 +77,31 @@ export default function JourneyScreen({
     }
   }, []);
 
-  // Only move the MapLibre marker — it follows map pan/zoom natively
-  const moveMascot = useCallback((lng: number, lat: number) => {
-    currentCoordsRef.current = [lng, lat];
-    updateNextCheckpointDistance(currentCoordsRef.current);
-    mapRef.current?.moveMascotMarker([lng, lat]);
-  }, [updateNextCheckpointDistance]);
-
-  // Animation loop stored in a ref — GSAP onComplete always calls the current version
-  const loopRef = useRef<() => void>(() => {});
-
-  loopRef.current = function runSegment() {
-    const gsap = gsapRef.current;
-    const st = animState.current;
-    if (!gsap || st.paused) return;
-
-    const polyline = route.polyline;
-    const totalSegs = polyline.length - 1;
-
-    if (st.segIdx >= totalSegs) {
-      setTimeout(() => onArriveRef.current(), 600);
+  const checkProximity = useCallback((coords: [number, number]) => {
+    if (arrivedRef.current) return;
+    const cpIdx = nextCpIdxRef.current;
+    const cp = route.checkpoints[cpIdx];
+    if (!cp) {
+      const distToEnd = haversineMeters(coords, route.endCoords);
+      if (distToEnd < CHECKPOINT_PROXIMITY_M) {
+        arrivedRef.current = true;
+        onArriveRef.current();
+      }
+      setNextCheckpointDistanceM(0);
       return;
     }
 
-    const from = polyline[st.segIdx];
-    const to = polyline[st.segIdx + 1];
-    const progress = { t: 0 };
+    const dist = haversineMeters(coords, cp.coords);
+    setNextCheckpointDistanceM(Math.round(dist));
 
-    gsap.to(progress, {
-      t: 1,
-      duration: 0.7,
-      ease: "none",
-      overwrite: "auto",
-      onUpdate() {
-        const lng = from[0] + (to[0] - from[0]) * progress.t;
-        const lat = from[1] + (to[1] - from[1]) * progress.t;
-        moveMascot(lng, lat);
-      },
-      onComplete() {
-        st.segIdx++;
-        const pctDone = (st.segIdx / totalSegs) * 100;
-        const cp = route.checkpoints[st.cpIdx];
-        if (cp && pctDone >= cp.progressPct) {
-          st.paused = true;
-          onReachCheckpointRef.current(st.cpIdx, cp.def.integrityDelta, cp.progressPct);
-          st.cpIdx++;
-          updateNextCheckpointDistance(to);
-        } else {
-          loopRef.current();
-        }
-      },
-    });
-  };
-
-  useEffect(() => {
-    import("gsap").then((mod) => { gsapRef.current = mod.gsap; });
-  }, []);
-
-  useEffect(() => {
-    currentCoordsRef.current = route.startCoords;
-    animState.current.cpIdx = 0;
-    updateNextCheckpointDistance(route.startCoords);
-    setMirrorMode(false);
-  }, [route.startCoords, updateNextCheckpointDistance]);
+    if (dist < CHECKPOINT_PROXIMITY_M) {
+      if (navigator.vibrate) navigator.vibrate(200);
+      const banner = getCheckpointBanner(cpIdx, cp.def.hazardType);
+      setCheckpointBanner(banner);
+      onReachCheckpointRef.current(cpIdx, cp.def.integrityDelta, cp.progressPct);
+      nextCpIdxRef.current = cpIdx + 1;
+    }
+  }, [route]);
 
   useEffect(() => {
     if (mirrorMode) startCamera();
@@ -165,22 +112,33 @@ export default function JourneyScreen({
     return () => stopCamera();
   }, [stopCamera]);
 
-  // Start animation once map + GSAP are both ready
   useEffect(() => {
     if (!mapReady) return;
-    if (animState.current.started) return;
-    const poll = setInterval(() => {
-      if (!gsapRef.current) return;
-      clearInterval(poll);
-      animState.current.started = true;
-      mapRef.current?.drawRoute(route);
-      setTimeout(() => loopRef.current(), 900);
-    }, 100);
-    return () => clearInterval(poll);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mapReady]);
 
-  // Resume after checkpoint dismissed + manage map popup
+    mapRef.current?.drawRoute(route);
+    mapRef.current?.addMascotMarker(route.startCoords);
+    mapRef.current?.flyTo(route.startCoords, 14);
+
+    if (!navigator.geolocation) return;
+
+    watchIdRef.current = navigator.geolocation.watchPosition(
+      (pos) => {
+        const coords: [number, number] = [pos.coords.longitude, pos.coords.latitude];
+        currentCoordsRef.current = coords;
+        mapRef.current?.moveMascotMarker(coords);
+        checkProximity(coords);
+      },
+      () => {},
+      { enableHighAccuracy: true, maximumAge: 3000, timeout: 10000 }
+    );
+
+    return () => {
+      if (watchIdRef.current !== null) {
+        navigator.geolocation.clearWatch(watchIdRef.current);
+      }
+    };
+  }, [mapReady, route, checkProximity]);
+
   const prevActiveCard = useRef(false);
   useEffect(() => {
     const wasActive = prevActiveCard.current;
@@ -188,27 +146,21 @@ export default function JourneyScreen({
     prevActiveCard.current = isActive;
 
     if (isActive && !wasActive) {
-      // Show witty popup at the checkpoint that was just reached
       const cp = route.checkpoints[journeyState.checkpointIndex];
       if (cp) {
-        const witty = CHECKPOINT_WITTIES[cp.def.hazardType] ?? "Something happened to your glam 💄";
-        mapRef.current?.showCheckpointPopup(cp.coords, witty);
+        const banner = getCheckpointBanner(journeyState.checkpointIndex, cp.def.hazardType);
+        mapRef.current?.showCheckpointPopup(cp.coords, banner);
       }
     }
     if (wasActive && !isActive) {
       mapRef.current?.removeCheckpointPopup();
-      if (animState.current.paused) {
-        animState.current.paused = false;
-        setTimeout(() => loopRef.current(), 450);
-      }
+      setCheckpointBanner(null);
     }
   }, [journeyState.activeCheckpointCard, journeyState.checkpointIndex, route.checkpoints]);
 
   const handleMapReady = useCallback(() => {
     setMapReady(true);
-    mapRef.current?.addMascotMarker(route.startCoords);
-    mapRef.current?.flyTo(route.startCoords, 14);
-  }, [route.startCoords]);
+  }, []);
 
   const { makeupIntegrity, progressPct, checkpointIndex, activeCheckpointCard } = journeyState;
   const activeCheckpoint = checkpointIndex >= 0 ? route.checkpoints[checkpointIndex] : null;
@@ -220,7 +172,6 @@ export default function JourneyScreen({
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
     >
-      {/* Full-screen map — interactive: pan + zoom enabled */}
       <div className="absolute inset-0">
         <MapCanvas
           ref={mapRef}
@@ -235,7 +186,6 @@ export default function JourneyScreen({
         />
       </div>
 
-      {/* Top HUD */}
       <div className="absolute top-4 left-0 right-0 z-20 flex justify-center px-3">
         <div className="w-full flex flex-col gap-2">
           <motion.div
@@ -249,7 +199,7 @@ export default function JourneyScreen({
               {route.glamName}
             </span>
             <button
-              className="inline-flex items-center justify-center h-7 w-7 rounded-lg border"
+              className="inline-flex items-center justify-center h-8 w-8 rounded-lg border"
               style={{ borderColor: "rgba(255,255,255,0.22)", background: "rgba(255,255,255,0.1)", color: "#1e1b4b" }}
               onClick={() => setMirrorMode(true)}
               aria-label="Open mirror mode"
@@ -310,20 +260,31 @@ export default function JourneyScreen({
 
             <div className="absolute inset-0 pointer-events-none" style={{ background: `rgba(255,255,255,${brightnessOverlay})` }} />
 
-            <div className="absolute top-3 left-3 right-3 flex items-center gap-2">
-              <div className="glass-dark px-3 py-2 rounded-xl flex-1">
-                <span className="font-inter text-xs font-semibold text-cream/70">
-                  Next checkpoint: {formatDistance(nextCheckpointDistanceM)}
-                </span>
+            <div className="absolute top-3 left-3 right-3 flex flex-col gap-2">
+              {checkpointBanner && (
+                <motion.div
+                  className="glass-dark px-4 py-3 rounded-xl"
+                  initial={{ opacity: 0, y: -20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                >
+                  <span className="font-inter text-sm font-semibold text-cream/90">{checkpointBanner}</span>
+                </motion.div>
+              )}
+              <div className="flex items-center gap-2">
+                <div className="glass-dark px-3 py-2 rounded-xl flex-1">
+                  <span className="font-inter text-xs font-semibold text-cream/70">
+                    Next checkpoint: {formatDistance(nextCheckpointDistanceM)}
+                  </span>
+                </div>
+                <button
+                  className="glass-dark h-10 px-3 rounded-xl inline-flex items-center gap-1.5"
+                  onClick={() => setMirrorMode(false)}
+                  aria-label="Back to map"
+                >
+                  <Map size={14} />
+                  <span className="font-inter text-xs font-semibold">Map</span>
+                </button>
               </div>
-              <button
-                className="glass-dark h-10 px-3 rounded-xl inline-flex items-center gap-1.5"
-                onClick={() => setMirrorMode(false)}
-                aria-label="Back to map"
-              >
-                <Map size={14} />
-                <span className="font-inter text-xs font-semibold">Map</span>
-              </button>
             </div>
 
             <div className="absolute bottom-3 left-3 right-3 glass-dark px-3 py-3 rounded-xl">
@@ -345,7 +306,6 @@ export default function JourneyScreen({
         )}
       </AnimatePresence>
 
-      {/* Bottom — stats bar OR checkpoint card */}
       <div className="absolute inset-x-0 bottom-0 z-20 flex justify-center">
         <div className="w-full">
           <AnimatePresence mode="wait">
@@ -381,29 +341,6 @@ export default function JourneyScreen({
       </div>
     </motion.div>
   );
-}
-
-function haversineMeters(from: [number, number], to: [number, number]): number {
-  const R = 6371000;
-  const [lng1, lat1] = from;
-  const [lng2, lat2] = to;
-  const dLat = toRad(lat2 - lat1);
-  const dLng = toRad(lng2 - lng1);
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) * Math.sin(dLng / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
-}
-
-function toRad(value: number): number {
-  return (value * Math.PI) / 180;
-}
-
-function formatDistance(distanceM: number | null): string {
-  if (distanceM === null) return "--";
-  if (distanceM >= 1000) return `${(distanceM / 1000).toFixed(1)} km`;
-  return `${distanceM} m`;
 }
 
 function StatItem({ value, label, accent }: { value: string; label: string; accent: "green" | "gold" | "red" | "blue" }) {
