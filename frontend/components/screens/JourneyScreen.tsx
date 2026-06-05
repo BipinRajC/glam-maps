@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import type { GlamRoute } from "@/lib/routes";
 import type { HazardType } from "@/lib/checkpoints";
 import type { JourneyState } from "@/lib/journeyMachine";
+import { Camera, Map } from "lucide-react";
 import MapCanvas, { type MapCanvasHandle } from "@/components/MapCanvas";
 import CheckpointCard from "@/components/CheckpointCard";
 import AuthenticityBadge from "@/components/shared/AuthenticityBadge";
@@ -37,6 +38,13 @@ export default function JourneyScreen({
 }: JourneyScreenProps) {
   const mapRef = useRef<MapCanvasHandle>(null);
   const [mapReady, setMapReady] = useState(false);
+  const [mirrorMode, setMirrorMode] = useState(false);
+  const [brightnessOverlay, setBrightnessOverlay] = useState(0.22);
+  const [cameraState, setCameraState] = useState<"idle" | "ready" | "blocked">("idle");
+  const [nextCheckpointDistanceM, setNextCheckpointDistanceM] = useState<number | null>(null);
+  const cameraVideoRef = useRef<HTMLVideoElement>(null);
+  const cameraStreamRef = useRef<MediaStream | null>(null);
+  const currentCoordsRef = useRef<[number, number]>(route.startCoords);
 
   const gsapRef = useRef<typeof import("gsap")["gsap"] | null>(null);
   const animState = useRef({ segIdx: 0, cpIdx: 0, paused: false, started: false });
@@ -47,10 +55,49 @@ export default function JourneyScreen({
   useEffect(() => { onReachCheckpointRef.current = onReachCheckpoint; }, [onReachCheckpoint]);
   useEffect(() => { onArriveRef.current = onArrive; }, [onArrive]);
 
+  const updateNextCheckpointDistance = useCallback((coords: [number, number]) => {
+    const nextCp = route.checkpoints[animState.current.cpIdx];
+    if (!nextCp) {
+      setNextCheckpointDistanceM(0);
+      return;
+    }
+    setNextCheckpointDistanceM(Math.round(haversineMeters(coords, nextCp.coords)));
+  }, [route.checkpoints]);
+
+  const stopCamera = useCallback(() => {
+    cameraStreamRef.current?.getTracks().forEach((track) => track.stop());
+    cameraStreamRef.current = null;
+    if (cameraVideoRef.current) cameraVideoRef.current.srcObject = null;
+    setCameraState("idle");
+  }, []);
+
+  const startCamera = useCallback(async () => {
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setCameraState("blocked");
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: "user" } },
+        audio: false,
+      });
+      cameraStreamRef.current = stream;
+      if (cameraVideoRef.current) {
+        cameraVideoRef.current.srcObject = stream;
+        await cameraVideoRef.current.play().catch(() => {});
+      }
+      setCameraState("ready");
+    } catch {
+      setCameraState("blocked");
+    }
+  }, []);
+
   // Only move the MapLibre marker — it follows map pan/zoom natively
   const moveMascot = useCallback((lng: number, lat: number) => {
+    currentCoordsRef.current = [lng, lat];
+    updateNextCheckpointDistance(currentCoordsRef.current);
     mapRef.current?.moveMascotMarker([lng, lat]);
-  }, []);
+  }, [updateNextCheckpointDistance]);
 
   // Animation loop stored in a ref — GSAP onComplete always calls the current version
   const loopRef = useRef<() => void>(() => {});
@@ -90,6 +137,7 @@ export default function JourneyScreen({
           st.paused = true;
           onReachCheckpointRef.current(st.cpIdx, cp.def.integrityDelta, cp.progressPct);
           st.cpIdx++;
+          updateNextCheckpointDistance(to);
         } else {
           loopRef.current();
         }
@@ -100,6 +148,22 @@ export default function JourneyScreen({
   useEffect(() => {
     import("gsap").then((mod) => { gsapRef.current = mod.gsap; });
   }, []);
+
+  useEffect(() => {
+    currentCoordsRef.current = route.startCoords;
+    animState.current.cpIdx = 0;
+    updateNextCheckpointDistance(route.startCoords);
+    setMirrorMode(false);
+  }, [route.startCoords, updateNextCheckpointDistance]);
+
+  useEffect(() => {
+    if (mirrorMode) startCamera();
+    else stopCamera();
+  }, [mirrorMode, startCamera, stopCamera]);
+
+  useEffect(() => {
+    return () => stopCamera();
+  }, [stopCamera]);
 
   // Start animation once map + GSAP are both ready
   useEffect(() => {
@@ -171,9 +235,9 @@ export default function JourneyScreen({
         />
       </div>
 
-      {/* Top HUD — responsive width */}
+      {/* Top HUD */}
       <div className="absolute top-4 left-0 right-0 z-20 flex justify-center px-3">
-        <div className="w-full max-w-2xl flex flex-col gap-2">
+        <div className="w-full flex flex-col gap-2">
           <motion.div
             className="glass px-4 py-2.5 flex items-center gap-2"
             initial={{ y: -24, opacity: 0 }}
@@ -181,9 +245,17 @@ export default function JourneyScreen({
             transition={{ delay: 0.25, type: "spring", damping: 20 }}
           >
             <span className="text-lg">{route.emoji}</span>
-            <span className="font-playfair text-sm sm:text-base font-bold text-cream flex-1 truncate">
+            <span className="font-playfair text-sm font-bold text-cream flex-1 truncate">
               {route.glamName}
             </span>
+            <button
+              className="inline-flex items-center justify-center h-7 w-7 rounded-lg border"
+              style={{ borderColor: "rgba(255,255,255,0.22)", background: "rgba(255,255,255,0.1)", color: "#1e1b4b" }}
+              onClick={() => setMirrorMode(true)}
+              aria-label="Open mirror mode"
+            >
+              <Camera size={14} />
+            </button>
             <span className={`text-xs font-inter font-semibold px-2 py-0.5 rounded-full border shrink-0 ${getDifficultyBg(route.difficulty)}`}>
               {route.difficulty}
             </span>
@@ -211,9 +283,71 @@ export default function JourneyScreen({
         </div>
       </div>
 
-      {/* Bottom — stats bar OR checkpoint card, centered + responsive */}
+      <AnimatePresence>
+        {mirrorMode && (
+          <motion.div
+            key="mirror-overlay"
+            className="absolute inset-0 z-40 bg-black"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            {cameraState === "ready" ? (
+              <video
+                ref={cameraVideoRef}
+                className="absolute inset-0 h-full w-full object-cover scale-x-[-1]"
+                muted
+                autoPlay
+                playsInline
+              />
+            ) : (
+              <div className="absolute inset-0 flex items-center justify-center px-6 text-center">
+                <p className="font-inter text-sm text-white/90">
+                  {cameraState === "blocked" ? "Camera permission blocked. Enable front camera to use mirror mode." : "Opening front camera..."}
+                </p>
+              </div>
+            )}
+
+            <div className="absolute inset-0 pointer-events-none" style={{ background: `rgba(255,255,255,${brightnessOverlay})` }} />
+
+            <div className="absolute top-3 left-3 right-3 flex items-center gap-2">
+              <div className="glass-dark px-3 py-2 rounded-xl flex-1">
+                <span className="font-inter text-xs font-semibold text-cream/70">
+                  Next checkpoint: {formatDistance(nextCheckpointDistanceM)}
+                </span>
+              </div>
+              <button
+                className="glass-dark h-10 px-3 rounded-xl inline-flex items-center gap-1.5"
+                onClick={() => setMirrorMode(false)}
+                aria-label="Back to map"
+              >
+                <Map size={14} />
+                <span className="font-inter text-xs font-semibold">Map</span>
+              </button>
+            </div>
+
+            <div className="absolute bottom-3 left-3 right-3 glass-dark px-3 py-3 rounded-xl">
+              <div className="flex items-center justify-between mb-2">
+                <span className="font-inter text-xs text-cream/70">Brightness</span>
+                <span className="font-inter text-xs font-semibold text-cream/70">{Math.round(brightnessOverlay * 100)}%</span>
+              </div>
+              <input
+                type="range"
+                min={0}
+                max={70}
+                value={Math.round(brightnessOverlay * 100)}
+                onChange={(e) => setBrightnessOverlay(Number(e.target.value) / 100)}
+                className="w-full"
+                aria-label="Mirror brightness"
+              />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Bottom — stats bar OR checkpoint card */}
       <div className="absolute inset-x-0 bottom-0 z-20 flex justify-center">
-        <div className="w-full max-w-2xl">
+        <div className="w-full">
           <AnimatePresence mode="wait">
             {activeCheckpointCard && activeCheckpoint ? (
               <CheckpointCard
@@ -221,7 +355,6 @@ export default function JourneyScreen({
                 checkpoint={activeCheckpoint.def}
                 checkpointNumber={checkpointIndex + 1}
                 totalCheckpoints={route.checkpoints.length}
-                makeupIntegrity={makeupIntegrity}
                 onContinue={onDismissCheckpoint}
               />
             ) : (
@@ -248,6 +381,29 @@ export default function JourneyScreen({
       </div>
     </motion.div>
   );
+}
+
+function haversineMeters(from: [number, number], to: [number, number]): number {
+  const R = 6371000;
+  const [lng1, lat1] = from;
+  const [lng2, lat2] = to;
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) * Math.sin(dLng / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+function toRad(value: number): number {
+  return (value * Math.PI) / 180;
+}
+
+function formatDistance(distanceM: number | null): string {
+  if (distanceM === null) return "--";
+  if (distanceM >= 1000) return `${(distanceM / 1000).toFixed(1)} km`;
+  return `${distanceM} m`;
 }
 
 function StatItem({ value, label, accent }: { value: string; label: string; accent: "green" | "gold" | "red" | "blue" }) {

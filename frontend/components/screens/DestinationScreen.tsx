@@ -47,7 +47,7 @@ export default function DestinationScreen({ onSelect }: DestinationScreenProps) 
         transition={{ type: "spring", damping: 22, stiffness: 180 }}
       >
         {/* Header */}
-        <div className="px-6 sm:px-10 lg:px-16 xl:px-24 pt-10 pb-6">
+        <div className="px-5 pt-8 pb-5">
           <motion.div
             className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-inter font-semibold mb-5"
             style={{ background: "rgba(194,24,91,0.1)", border: "1px solid rgba(194,24,91,0.28)", color: "#C2185B" }}
@@ -59,7 +59,7 @@ export default function DestinationScreen({ onSelect }: DestinationScreenProps) 
           </motion.div>
           <motion.h2
             className="font-playfair font-bold leading-tight"
-            style={{ fontSize: "clamp(2rem, 5vw, 3.5rem)", color: "#1e1b4b" }}
+            style={{ fontSize: "2.4rem", color: "#1e1b4b" }}
             initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.15 }}
@@ -67,7 +67,7 @@ export default function DestinationScreen({ onSelect }: DestinationScreenProps) 
             Where are we slaying today?
           </motion.h2>
           <motion.p
-            className="font-inter text-sm sm:text-base mt-2 max-w-lg"
+            className="font-inter text-sm mt-2"
             style={{ color: "#4c4876" }}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -78,7 +78,7 @@ export default function DestinationScreen({ onSelect }: DestinationScreenProps) 
         </div>
 
         {/* Card groups by difficulty */}
-        <div className="flex-1 px-6 sm:px-10 lg:px-16 xl:px-24 pb-10 flex flex-col gap-10">
+        <div className="flex-1 px-5 pb-8 flex flex-col gap-8">
           {ROUTE_GROUPS.map((group, gi) => {
             const groupCards = DESTINATION_CARDS.filter((c) => group.cards.includes(c.id));
             return (
@@ -100,8 +100,8 @@ export default function DestinationScreen({ onSelect }: DestinationScreenProps) 
                   <div className="h-px flex-1" style={{ background: `linear-gradient(90deg, transparent, ${group.color}50)` }} />
                 </div>
 
-                {/* Cards — 2-col on tablet+, 3-col on xl+ for scalability */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                {/* Cards */}
+                <div className="grid grid-cols-1 gap-4">
                   {groupCards.map((card, i) => (
                     <motion.button
                       key={card.id}

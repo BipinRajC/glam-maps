@@ -6,3 +6,8 @@
 contexts/*
 docs/*
 backend/API_DOC.md
+
+.codex/*
+.opencode/*
+.swarm/*
+.agents/*

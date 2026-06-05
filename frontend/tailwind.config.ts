@@ -50,7 +50,7 @@ const config: Config = {
         "3xl": "1.5rem",
       },
       maxWidth: {
-        mobile: "430px",
+        mobile: "390px",
       },
     },
   },

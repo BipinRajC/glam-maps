@@ -6,23 +6,21 @@ export interface JourneyState {
   checkpointIndex: number; // which checkpoint is currently active (-1 = none)
   makeupIntegrity: number; // 0–100
   progressPct: number; // 0–100 route progress
-  passport: string[]; // route IDs completed
   locationGranted: boolean;
-  activeCheckpointCard: boolean; // is a checkpoint card shown right now
+  activeCheckpointCard: boolean;
+  userLocation: [number, number] | null;
 }
 
 export type JourneyAction =
   | { type: "ENTER_GLAMVERSE" }
-  | { type: "GRANT_LOCATION" }
-  | { type: "DENY_LOCATION" }
+  | { type: "GRANT_LOCATION"; coords: [number, number] }
   | { type: "SELECT_DESTINATION"; routeId: string }
   | { type: "COOKING_DONE" }
   | { type: "REACH_CHECKPOINT"; checkpointIndex: number; integrityDelta: number; progressPct: number }
   | { type: "DISMISS_CHECKPOINT" }
   | { type: "ARRIVE" }
-  | { type: "RESTART" }
-  | { type: "DEMO_JUMP_JOURNEY"; routeId: string }
-  | { type: "DEMO_JUMP_ARRIVAL" };
+  | { type: "SET_SNAPPED_START"; coords: [number, number] }
+  | { type: "RESTART" };
 
 export const INITIAL_STATE: JourneyState = {
   screen: "PORTAL",
@@ -30,9 +28,9 @@ export const INITIAL_STATE: JourneyState = {
   checkpointIndex: -1,
   makeupIntegrity: 100,
   progressPct: 0,
-  passport: [],
   locationGranted: false,
   activeCheckpointCard: false,
+  userLocation: null,
 };
 
 export function journeyReducer(state: JourneyState, action: JourneyAction): JourneyState {
@@ -41,10 +39,7 @@ export function journeyReducer(state: JourneyState, action: JourneyAction): Jour
       return { ...state, screen: "PERMISSION" };
 
     case "GRANT_LOCATION":
-      return { ...state, locationGranted: true, screen: "DESTINATION" };
-
-    case "DENY_LOCATION":
-      return { ...state, locationGranted: false, screen: "DESTINATION" };
+      return { ...state, locationGranted: true, userLocation: action.coords, screen: "DESTINATION" };
 
     case "SELECT_DESTINATION":
       return {
@@ -77,32 +72,13 @@ export function journeyReducer(state: JourneyState, action: JourneyAction): Jour
         ...state,
         screen: "ARRIVAL",
         progressPct: 100,
-        passport: state.selectedRouteId && !state.passport.includes(state.selectedRouteId)
-          ? [...state.passport, state.selectedRouteId]
-          : state.passport,
       };
+
+    case "SET_SNAPPED_START":
+      return { ...state, userLocation: action.coords };
 
     case "RESTART":
-      return { ...INITIAL_STATE, passport: state.passport };
-
-    case "DEMO_JUMP_JOURNEY":
-      return {
-        ...INITIAL_STATE,
-        screen: "JOURNEY",
-        selectedRouteId: action.routeId,
-        passport: state.passport,
-      };
-
-    case "DEMO_JUMP_ARRIVAL":
-      return {
-        ...state,
-        screen: "ARRIVAL",
-        progressPct: 100,
-        makeupIntegrity: state.makeupIntegrity,
-        passport: state.selectedRouteId && !state.passport.includes(state.selectedRouteId ?? "")
-          ? [...state.passport, state.selectedRouteId ?? ""]
-          : state.passport,
-      };
+      return INITIAL_STATE;
 
     default:
       return state;

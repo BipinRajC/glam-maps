@@ -21,12 +21,13 @@ interface MapCanvasProps {
   initialCenter?: [number, number];
   initialZoom?: number;
   onReady?: () => void;
+  interactive?: boolean;
 }
 
 const BENGALURU_CENTER: [number, number] = [77.5946, 12.9716];
 
 const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(
-  ({ className = "", initialCenter = BENGALURU_CENTER, initialZoom = 11, onReady }, ref) => {
+  ({ className = "", initialCenter = BENGALURU_CENTER, initialZoom = 11, onReady, interactive = true }, ref) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const mapRef = useRef<InstanceType<typeof import("maplibre-gl").Map> | null>(null);
     const mascotMarkerRef = useRef<InstanceType<typeof import("maplibre-gl").Marker> | null>(null);
@@ -47,7 +48,7 @@ const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(
           center: initialCenter,
           zoom: initialZoom,
           attributionControl: false,
-          interactive: true,
+          interactive,
         });
 
         mapRef.current = map;

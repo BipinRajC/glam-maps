@@ -30,12 +30,21 @@
     @apply border-border;
   }
 
+  html,
+  body {
+    width: 100%;
+    min-height: 100%;
+    overflow-x: hidden;
+  }
+
   body {
     background: #ffffff;
     color: #1e1b4b;
     font-family: var(--font-inter), sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    overscroll-behavior-x: none;
+    touch-action: pan-x pan-y;
   }
 
   html {
