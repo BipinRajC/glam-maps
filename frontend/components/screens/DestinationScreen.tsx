@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { DESTINATION_CARDS, ROUTES } from "@/lib/routes";
 import type { DestinationCard } from "@/lib/routes";
 import type { Difficulty } from "@/lib/routes";
-import { haversineMeters, polylineDistanceM, estimateTimeMinutes, formatDistance } from "@/lib/routeCalc";
+import { polylineDistanceM, estimateTimeMinutes, formatDistance } from "@/lib/routeCalc";
 import MapCanvas, { type MapCanvasHandle } from "@/components/MapCanvas";
 import AuthenticityBadge from "@/components/shared/AuthenticityBadge";
 import { GradientBackground } from "@/components/ui/gradient-backgrounds";

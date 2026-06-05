@@ -316,7 +316,7 @@ export const ROUTES: Record<string, GlamRoute> = {
     stats: { potholeCount: 6, hazardZones: 2, smoothCorridors: 0, worstStretch: "Marathahalli bridge approach — 3 potholes, severity 7.0/10", smoothestStretch: "None", communityReports: 28 },
   },
 
-  rt nagar: {
+  rtnagar: {
     id: "rtnagar",
     glamName: "RT Nagar Radiance Run",
     realName: "RT Nagar Main Road",

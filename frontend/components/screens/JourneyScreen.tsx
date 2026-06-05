@@ -11,7 +11,6 @@ import AuthenticityBadge from "@/components/shared/AuthenticityBadge";
 import { getDifficultyBg } from "@/lib/score";
 import { haversineMeters, formatDistance } from "@/lib/routeCalc";
 import { getCheckpointBanner } from "@/lib/commentary";
-import type { HazardType } from "@/lib/checkpoints";
 
 const CHECKPOINT_PROXIMITY_M = 50;
 
