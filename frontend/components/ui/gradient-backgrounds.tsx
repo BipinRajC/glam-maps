@@ -13,7 +13,7 @@ export function GradientBackground({ children, className = "" }: GradientBgProps
       {/* Static white base */}
       <div className="absolute inset-0 z-0" style={{ background: "#fff" }} />
       {/* Non-journey map backdrop */}
-      <div className="absolute inset-0 z-0 pointer-events-none opacity-[0.22]">
+      <div className="absolute inset-0 z-0 pointer-events-none opacity-[0.08]">
         <MapCanvas
           className="w-full h-full"
           initialCenter={[77.5946, 12.9716]}
