@@ -35,6 +35,7 @@
     width: 100%;
     min-height: 100%;
     overflow-x: hidden;
+    -webkit-tap-highlight-color: transparent;
   }
 
   body {
@@ -45,6 +46,15 @@
     -moz-osx-font-smoothing: grayscale;
     overscroll-behavior-x: none;
     touch-action: pan-x pan-y;
+  }
+
+  button, a, [role="button"] {
+    min-height: 48px;
+    min-width: 48px;
+  }
+
+  input, textarea, select {
+    font-size: 16px;
   }
 
   html {
