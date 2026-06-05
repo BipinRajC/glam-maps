@@ -7,20 +7,28 @@ import AuthenticityBadge from "@/components/shared/AuthenticityBadge";
 import { GradientBackground } from "@/components/ui/gradient-backgrounds";
 
 interface PermissionScreenProps {
-  onGrant: () => void;
-  onDeny: () => void;
+  onGrant: (coords: [number, number]) => void;
 }
 
-export default function PermissionScreen({ onGrant, onDeny }: PermissionScreenProps) {
+export default function PermissionScreen({ onGrant }: PermissionScreenProps) {
   const [state, setState] = useState<"idle" | "locating" | "success" | "denied">("idle");
 
   function handleShare() {
     setState("locating");
-    if (!navigator.geolocation) { setState("denied"); setTimeout(onDeny, 1200); return; }
+    if (!navigator.geolocation) {
+      setState("denied");
+      return;
+    }
     navigator.geolocation.getCurrentPosition(
-      () => { setState("success"); setTimeout(onGrant, 1400); },
-      () => { setState("denied"); setTimeout(onDeny, 1200); },
-      { timeout: 8000 }
+      (pos) => {
+        setState("success");
+        const coords: [number, number] = [pos.coords.longitude, pos.coords.latitude];
+        setTimeout(() => onGrant(coords), 1400);
+      },
+      () => {
+        setState("denied");
+      },
+      { timeout: 8000, enableHighAccuracy: true }
     );
   }
 
@@ -51,7 +59,7 @@ export default function PermissionScreen({ onGrant, onDeny }: PermissionScreenPr
               I need to know where you&apos;re starting your slay from 📍
             </p>
             <p className="font-inter text-xs leading-relaxed" style={{ color: "#8480aa" }}>
-              Your location is used only to mark your starting point. The journey follows a curated Bengaluru route regardless.
+              Location is required to plan your route. Your coordinates are used only to mark your starting point.
             </p>
 
             <AnimatePresence mode="wait">
@@ -66,13 +74,6 @@ export default function PermissionScreen({ onGrant, onDeny }: PermissionScreenPr
                   >
                     Share my location 💄
                   </motion.button>
-                  <button
-                    className="w-full py-2 text-sm font-inter"
-                    style={{ color: "#8480aa" }}
-                    onClick={onDeny}
-                  >
-                    Skip for now
-                  </button>
                 </motion.div>
               )}
               {state === "locating" && (
@@ -88,8 +89,16 @@ export default function PermissionScreen({ onGrant, onDeny }: PermissionScreenPr
                 </motion.div>
               )}
               {state === "denied" && (
-                <motion.div key="denied" className="py-3" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                  <span className="font-inter text-sm" style={{ color: "#4c4876" }}>No worries — we&apos;ll start from MG Road ✨</span>
+                <motion.div key="denied" className="flex flex-col items-center gap-3 py-3" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                  <span className="font-inter text-sm" style={{ color: "#dc2626" }}>Location access is required to continue.</span>
+                  <motion.button
+                    className="w-full py-3.5 rounded-2xl font-inter font-bold text-base text-white"
+                    style={{ background: "linear-gradient(135deg, #C2185B 0%, #FF4081 60%, #F9A825 100%)" }}
+                    whileTap={{ scale: 0.97 }}
+                    onClick={handleShare}
+                  >
+                    Try again 💄
+                  </motion.button>
                 </motion.div>
               )}
             </AnimatePresence>
