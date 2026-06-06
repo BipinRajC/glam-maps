@@ -1,13 +1,14 @@
 "use client";
 
-import { useReducer, useCallback } from "react";
+import { useReducer, useCallback, useMemo } from "react";
 import { AnimatePresence } from "framer-motion";
 import { journeyReducer, INITIAL_STATE } from "@/lib/journeyMachine";
 import { ROUTES } from "@/lib/routes";
+import { synthesizeRoute } from "@/lib/waypoints";
 
 import PortalScreen from "@/components/screens/PortalScreen";
 import PermissionScreen from "@/components/screens/PermissionScreen";
-import DestinationScreen from "@/components/screens/DestinationScreen";
+import LocationSelectScreen from "@/components/screens/LocationSelectScreen";
 import CookingScreen from "@/components/screens/CookingScreen";
 import JourneyScreen from "@/components/screens/JourneyScreen";
 import ArrivalScreen from "@/components/screens/ArrivalScreen";
@@ -15,7 +16,12 @@ import ArrivalScreen from "@/components/screens/ArrivalScreen";
 export default function GlamMaps() {
   const [state, dispatch] = useReducer(journeyReducer, INITIAL_STATE);
 
-  const selectedRoute = state.selectedRouteId ? ROUTES[state.selectedRouteId] : null;
+  const selectedRoute = useMemo(() => {
+    if (state.selectedPickup && state.selectedDestination) {
+      return synthesizeRoute(state.selectedPickup, state.selectedDestination, state.userLocation);
+    }
+    return state.selectedRouteId ? ROUTES[state.selectedRouteId] : null;
+  }, [state.selectedPickup, state.selectedDestination, state.selectedRouteId, state.userLocation]);
 
   const handleReachCheckpoint = useCallback((index: number, delta: number, progress: number) => {
     dispatch({ type: "REACH_CHECKPOINT", checkpointIndex: index, integrityDelta: delta, progressPct: progress });
@@ -35,7 +41,11 @@ export default function GlamMaps() {
           <PermissionScreen key="permission" onGrant={(coords) => dispatch({ type: "GRANT_LOCATION", coords })} />
         )}
         {state.screen === "DESTINATION" && (
-          <DestinationScreen key="destination" userLocation={state.userLocation} onSelect={(routeId) => dispatch({ type: "SELECT_DESTINATION", routeId })} />
+          <LocationSelectScreen
+            key="destination"
+            userLocation={state.userLocation}
+            onSelect={(pickup, destination) => dispatch({ type: "SELECT_PICKUP_DESTINATION", pickup, destination })}
+          />
         )}
         {state.screen === "COOKING" && selectedRoute && (
           <CookingScreen key="cooking" route={selectedRoute} onDone={() => dispatch({ type: "COOKING_DONE" })} />

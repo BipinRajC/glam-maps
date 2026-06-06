@@ -1,8 +1,12 @@
+import type { Waypoint } from "./waypoints";
+
 export type Screen = "PORTAL" | "PERMISSION" | "DESTINATION" | "COOKING" | "JOURNEY" | "ARRIVAL";
 
 export interface JourneyState {
   screen: Screen;
   selectedRouteId: string | null;
+  selectedPickup: Waypoint | null;
+  selectedDestination: Waypoint | null;
   checkpointIndex: number; // which checkpoint is currently active (-1 = none)
   makeupIntegrity: number; // 0–100
   progressPct: number; // 0–100 route progress
@@ -15,6 +19,7 @@ export type JourneyAction =
   | { type: "ENTER_GLAMVERSE" }
   | { type: "GRANT_LOCATION"; coords: [number, number] }
   | { type: "SELECT_DESTINATION"; routeId: string }
+  | { type: "SELECT_PICKUP_DESTINATION"; pickup: Waypoint; destination: Waypoint }
   | { type: "COOKING_DONE" }
   | { type: "REACH_CHECKPOINT"; checkpointIndex: number; integrityDelta: number; progressPct: number }
   | { type: "DISMISS_CHECKPOINT" }
@@ -25,6 +30,8 @@ export type JourneyAction =
 export const INITIAL_STATE: JourneyState = {
   screen: "PORTAL",
   selectedRouteId: null,
+  selectedPickup: null,
+  selectedDestination: null,
   checkpointIndex: -1,
   makeupIntegrity: 100,
   progressPct: 0,
@@ -51,6 +58,20 @@ export function journeyReducer(state: JourneyState, action: JourneyAction): Jour
         progressPct: 0,
         activeCheckpointCard: false,
       };
+
+    case "SELECT_PICKUP_DESTINATION": {
+      return {
+        ...state,
+        screen: "COOKING",
+        selectedPickup: action.pickup,
+        selectedDestination: action.destination,
+        selectedRouteId: null,
+        checkpointIndex: -1,
+        makeupIntegrity: 100,
+        progressPct: 0,
+        activeCheckpointCard: false,
+      };
+    }
 
     case "COOKING_DONE":
       return { ...state, screen: "JOURNEY" };

@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
 import { GradientBackground } from "@/components/ui/gradient-backgrounds";
+import BrandPill from "@/components/shared/brand-pill";
 
 interface PortalScreenProps {
   onEnter: () => void;
@@ -48,19 +49,7 @@ export default function PortalScreen({ onEnter }: PortalScreenProps) {
       >
         {/* Content Section */}
         <div className="flex-1 flex flex-col gap-5 px-5 py-8 justify-center">
-          <motion.div
-            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-inter font-semibold w-fit"
-            style={{
-              background: "rgba(194,24,91,0.1)",
-              border: "1px solid rgba(194,24,91,0.25)",
-              color: "#C2185B",
-            }}
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4 }}
-          >
-            ✦ Flipkart Glam Up
-          </motion.div>
+          <BrandPill text="✦ Flipkart Glam Up" />
 
           <div>
             <p

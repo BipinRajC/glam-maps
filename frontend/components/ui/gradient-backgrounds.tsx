@@ -6,9 +6,17 @@ interface GradientBgProps {
   children: React.ReactNode;
   className?: string;
   mapOpacity?: number;
+  mapCenter?: [number, number];
+  mapZoom?: number;
 }
 
-export function GradientBackground({ children, className = "", mapOpacity = 0.12 }: GradientBgProps) {
+export function GradientBackground({
+  children,
+  className = "",
+  mapOpacity = 0.12,
+  mapCenter = [77.5946, 12.9716],
+  mapZoom = 11,
+}: GradientBgProps) {
   return (
     <div className={`min-h-dvh w-full relative overflow-hidden ${className}`}>
       {/* Static white base */}
@@ -20,8 +28,8 @@ export function GradientBackground({ children, className = "", mapOpacity = 0.12
       >
         <MapCanvas
           className="w-full h-full"
-          initialCenter={[77.5946, 12.9716]}
-          initialZoom={11}
+          initialCenter={mapCenter}
+          initialZoom={mapZoom}
           interactive={false}
         />
       </div>
