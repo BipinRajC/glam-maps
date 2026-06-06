@@ -108,6 +108,11 @@ async def _build_checkpoints(
     all_cps = pothole_cps + traffic_cps
     all_cps.sort(key=lambda c: c['t'])
 
+    # --- Select optimal subset: pothole priority + farthest-first spacing ---
+    all_cps = _select_optimal_checkpoints(
+        all_cps, distance_meters=route.distance_meters
+    )
+
     # If no potholes or traffic data, fill with smooth stretches
     if not all_cps:
         all_cps = _fill_smooth_stretches([], total_needed=4)
@@ -209,6 +214,77 @@ def _filter_redundant_normal_traffic(
         # else: suppress — pothole checkpoint already signals this area
 
     return filtered
+
+
+# ---------------------------------------------------------------------------
+# Optimal checkpoint selection — farthest-first with distance-aware budget
+# ---------------------------------------------------------------------------
+
+
+def _compute_budget(distance_meters: int | None) -> int:
+    """Decide total checkpoint budget based on route length."""
+    if not distance_meters:
+        return 6  # sensible default
+    km = distance_meters / 1000.0
+    if km < 3:
+        return 4
+    if km < 10:
+        return 6
+    if km < 25:
+        return 8
+    return 10
+
+
+def _select_optimal_checkpoints(
+    candidates: list[dict],
+    distance_meters: int | None,
+) -> list[dict]:
+    """Pick at most K well-spaced checkpoints, giving potholes priority.
+
+    Algorithm (Gonzalez k-center variant):
+      Phase 1 — Lock all pothole checkpoints (mandatory).
+      Phase 2 — Greedily add the traffic checkpoint whose minimum
+                distance (in metres) to every already-selected checkpoint
+                is the largest.  This maximises the spacing.
+    """
+    budget = _compute_budget(distance_meters)
+    route_m = float(distance_meters or 10_000)  # fallback 10 km
+
+    # Convert fractional t → metres for distance calculations
+    def t_to_m(t: float) -> float:
+        return t * route_m
+
+    # Phase 1: lock in pothole checkpoints
+    selected: list[dict] = [cp for cp in candidates if cp['checkpoint_type'] == 'pothole']
+    remaining: list[dict] = [cp for cp in candidates if cp['checkpoint_type'] != 'pothole']
+
+    # If potholes alone already exceed budget, keep all potholes anyway
+    # (they are the highest-priority signal)
+    slots_left = max(0, budget - len(selected))
+
+    # Phase 2: farthest-first greedy fill from remaining (traffic) checkpoints
+    available = list(remaining)
+    for _ in range(slots_left):
+        if not available:
+            break
+
+        if not selected:
+            # First pick: choose the one closest to the route midpoint
+            best = min(available, key=lambda cp: abs(t_to_m(cp['t']) - route_m / 2))
+        else:
+            selected_m = [t_to_m(s['t']) for s in selected]
+            # For each candidate, find its minimum distance to any selected cp
+            best = max(
+                available,
+                key=lambda cp: min(abs(t_to_m(cp['t']) - sm) for sm in selected_m),
+            )
+
+        available.remove(best)
+        selected.append(best)
+
+    # Return sorted by route position
+    selected.sort(key=lambda c: c['t'])
+    return selected
 
 
 # ---------------------------------------------------------------------------
