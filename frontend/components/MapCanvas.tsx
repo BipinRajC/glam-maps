@@ -52,7 +52,11 @@ const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(
         });
 
         mapRef.current = map;
-        map.on("load", () => { onReady?.(); });
+        if (map.loaded()) {
+          onReady?.();
+        } else {
+          map.once("idle", () => { onReady?.(); });
+        }
       });
 
       return () => {
