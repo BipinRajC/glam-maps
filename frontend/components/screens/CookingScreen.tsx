@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import type { GlamRoute } from "@/lib/routes";
 import MapCanvas, { type MapCanvasHandle } from "@/components/MapCanvas";
 import AuthenticityBadge from "@/components/shared/AuthenticityBadge";
+import GlobeZoomTransition from "@/components/transitions/GlobeZoomTransition";
 import { getDifficultyBg } from "@/lib/score";
 
 interface CookingScreenProps {
@@ -19,7 +20,7 @@ const LOADING_LINES = [
   "Plotting your glow route…",
 ];
 
-type Beat = "loading" | "map-reveal" | "route-draw" | "mascot-reveal" | "stats-slide" | "done";
+type Beat = "loading" | "transition" | "map-reveal" | "route-draw" | "mascot-reveal" | "stats-slide" | "done";
 
 export default function CookingScreen({ route, onDone }: CookingScreenProps) {
   const mapRef = useRef<MapCanvasHandle>(null);
@@ -39,7 +40,10 @@ export default function CookingScreen({ route, onDone }: CookingScreenProps) {
   const runSequence = useCallback(() => {
     if (sequenceStarted.current) return;
     sequenceStarted.current = true;
+    setBeat("transition");
+  }, []);
 
+  const handleTransitionComplete = useCallback(() => {
     setBeat("map-reveal");
     mapRef.current?.flyTo(route.startCoords, 14);
 
@@ -69,7 +73,7 @@ export default function CookingScreen({ route, onDone }: CookingScreenProps) {
     return () => clearTimeout(t);
   }, [loadingLineIdx, mapReady, beat, runSequence]);
 
-  const mapVisible = beat !== "loading";
+  const mapVisible = beat !== "loading" && beat !== "transition";
 
   return (
     <div className="relative flex flex-col min-h-dvh w-full overflow-hidden">
@@ -168,6 +172,21 @@ export default function CookingScreen({ route, onDone }: CookingScreenProps) {
               </div>
             </div>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Globe zoom transition */}
+      <AnimatePresence>
+        {beat === "transition" && (
+          <GlobeZoomTransition
+            key="transition"
+            fromLat={route.startCoords[1]}
+            fromLng={route.startCoords[0]}
+            toLat={route.endCoords[1]}
+            toLng={route.endCoords[0]}
+            skippable
+            onComplete={handleTransitionComplete}
+          />
         )}
       </AnimatePresence>
 
