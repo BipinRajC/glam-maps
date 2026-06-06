@@ -45,24 +45,26 @@ export default function CookingScreen({ route, onDone }: CookingScreenProps) {
 
   const handleTransitionComplete = useCallback(() => {
     setBeat("map-reveal");
-    mapRef.current?.flyTo(route.startCoords, 14);
-
-    setTimeout(() => {
-      setBeat("route-draw");
-      mapRef.current?.drawRoute(route, () => {
-        setTimeout(() => {
-          setBeat("mascot-reveal");
-          mapRef.current?.addMascotMarker(route.startCoords);
+    const map = mapRef.current?.getMap();
+    if (map) {
+      map.once("moveend", () => {
+        setBeat("route-draw");
+        mapRef.current?.drawRoute(route, () => {
           setTimeout(() => {
-            setBeat("stats-slide");
+            setBeat("mascot-reveal");
+            mapRef.current?.addMascotMarker(route.startCoords);
             setTimeout(() => {
-              setBeat("done");
-              setTimeout(onDone, 600);
-            }, 1400);
-          }, 700);
-        }, 500);
+              setBeat("stats-slide");
+              setTimeout(() => {
+                setBeat("done");
+                setTimeout(onDone, 600);
+              }, 1400);
+            }, 700);
+          }, 500);
+        });
       });
-    }, 1300);
+    }
+    mapRef.current?.flyTo(route.startCoords, 14);
   }, [route, onDone]);
 
   useEffect(() => {
