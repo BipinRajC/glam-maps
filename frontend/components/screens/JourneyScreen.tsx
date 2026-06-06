@@ -124,7 +124,6 @@ export default function JourneyScreen({
       (pos) => {
         const coords: [number, number] = [pos.coords.longitude, pos.coords.latitude];
         currentCoordsRef.current = coords;
-        mapRef.current?.moveMascotMarker(coords);
         checkProximity(coords);
       },
       () => {},
