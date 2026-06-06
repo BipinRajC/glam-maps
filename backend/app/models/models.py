@@ -25,6 +25,8 @@ class Route(Base):
         nullable=False,
     )
     distance_meters: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    duration_seconds: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    glam_score: Mapped[int | None] = mapped_column(Integer, nullable=True)
     # Cached speedReadingIntervals from Google Routes API (TRAFFIC_ON_POLYLINE)
     speed_intervals: Mapped[list | None] = mapped_column(JSON, nullable=True)
     created_at: Mapped[datetime] = mapped_column(

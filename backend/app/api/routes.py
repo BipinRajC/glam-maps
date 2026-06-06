@@ -65,6 +65,7 @@ async def generate_route(body: RouteRequest, db: AsyncSession = Depends(get_db))
             encoded_polyline=encoded,
             geom=WKTElement(line_wkt, srid=4326),
             distance_meters=route_data.get('distance_meters'),
+            duration_seconds=route_data.get('duration_seconds'),
             speed_intervals=route_data.get('speed_intervals'),
         )
         db.add(route)
@@ -75,11 +76,80 @@ async def generate_route(body: RouteRequest, db: AsyncSession = Depends(get_db))
     # 5. Generate checkpoints along the route
     checkpoints = await _build_checkpoints(route, db)
 
+    # 6. Compute and persist the Glam Score
+    score = _compute_glam_score(route, checkpoints)
+    route.glam_score = score
+    await db.commit()
+
     return RouteResponse(
         route_id=route.id,
         encoded_polyline=route.encoded_polyline,
+        distance_meters=route.distance_meters,
+        duration_seconds=route.duration_seconds,
+        glam_score=score,
         checkpoints=checkpoints,
     )
+
+
+# ---------------------------------------------------------------------------
+# Glam Score calculation
+# ---------------------------------------------------------------------------
+
+# How makeup-friendly is this route?
+#
+# GOOD for makeup (bonuses — hard to earn):
+#   Duration — longer trip = more time to apply       (max +20)
+#   Traffic  — slow/jam = car is still, safe to apply (max +30)
+#
+# BAD for makeup (penalties — hits fast):
+#   Potholes — bumps cause smudges and slips          (max −60)
+#
+# Base score: 50.  Range clamped to 1–100.
+# Perfect score (100) only if: long trip, full traffic jam, zero potholes.
+
+_TRAFFIC_SPEED_BONUS = {
+    'NORMAL': 0.0,  # moving at speed — neutral
+    'SLOW': 0.4,  # car is crawling — decent window
+    'TRAFFIC_JAM': 1.0,  # car is stationary — perfect
+}
+
+
+def _compute_glam_score(
+    route: Route,
+    checkpoints: list[CheckpointResponse],
+) -> int:
+    """Score 1-100: higher = better for applying makeup on this route."""
+
+    distance_km = (route.distance_meters or 5000) / 1000.0
+    duration_min = (route.duration_seconds or 600) / 60.0
+
+    # --- Duration bonus (max 20) ---
+    # < 10 min → 0 bonus, ≥ 40 min → full 20 (steep ramp)
+    duration_bonus = min(max(duration_min - 10, 0) / 30.0, 1.0) * 20.0
+
+    # --- Traffic bonus (max 30) ---
+    # Needs heavy jam to earn full bonus; SLOW only gives 0.4× credit
+    traffic_cps = [cp for cp in checkpoints if cp.checkpoint_type == 'traffic']
+    if traffic_cps:
+        weighted = sum(
+            _TRAFFIC_SPEED_BONUS.get(cp.traffic_speed or 'NORMAL', 0)
+            for cp in traffic_cps
+        )
+        traffic_ratio = weighted / len(traffic_cps)
+    else:
+        traffic_ratio = 0.0
+    traffic_bonus = traffic_ratio * 30.0
+
+    # --- Pothole penalty (max 60) ---
+    # Bumps ruin everything — hits hard and fast
+    pothole_cps = [cp for cp in checkpoints if cp.checkpoint_type == 'pothole']
+    total_potholes = sum(cp.pothole_count for cp in pothole_cps)
+    potholes_per_km = total_potholes / max(distance_km, 0.5)
+    #  0/km → 0,  4/km → 30,  8+/km → 60 (capped)
+    pothole_penalty = min(potholes_per_km * (60.0 / 8.0), 60.0)
+
+    raw = 50 + duration_bonus + traffic_bonus - pothole_penalty
+    return max(1, min(100, round(raw)))
 
 
 # ---------------------------------------------------------------------------
@@ -255,8 +325,12 @@ def _select_optimal_checkpoints(
         return t * route_m
 
     # Phase 1: lock in pothole checkpoints
-    selected: list[dict] = [cp for cp in candidates if cp['checkpoint_type'] == 'pothole']
-    remaining: list[dict] = [cp for cp in candidates if cp['checkpoint_type'] != 'pothole']
+    selected: list[dict] = [
+        cp for cp in candidates if cp['checkpoint_type'] == 'pothole'
+    ]
+    remaining: list[dict] = [
+        cp for cp in candidates if cp['checkpoint_type'] != 'pothole'
+    ]
 
     # If potholes alone already exceed budget, keep all potholes anyway
     # (they are the highest-priority signal)

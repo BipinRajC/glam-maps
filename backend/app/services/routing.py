@@ -33,6 +33,7 @@ async def compute_route(
         'X-Goog-Api-Key': settings.GOOGLE_MAPS_ROUTES_API,
         'X-Goog-FieldMask': (
             'routes.distanceMeters,'
+            'routes.duration,'
             'routes.polyline.encodedPolyline,'
             'routes.travelAdvisory.speedReadingIntervals'
         ),
@@ -67,8 +68,13 @@ async def compute_route(
 
     speed_intervals = route.get('travelAdvisory', {}).get('speedReadingIntervals', [])
 
+    # Duration comes as a string like '300s' — parse to int seconds
+    duration_str = route.get('duration', '0s')
+    duration_seconds = int(duration_str.rstrip('s')) if duration_str else 0
+
     return {
         'encoded_polyline': route['polyline']['encodedPolyline'],
         'distance_meters': route.get('distanceMeters'),
+        'duration_seconds': duration_seconds,
         'speed_intervals': speed_intervals,
     }

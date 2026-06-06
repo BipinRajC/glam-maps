@@ -16,6 +16,17 @@ class RouteResponse(BaseModel):
     encoded_polyline: str = Field(
         description='Google Maps encoded polyline string for frontend rendering.'
     )
+    distance_meters: int | None = Field(
+        None, description='Total route distance in metres.'
+    )
+    duration_seconds: int | None = Field(
+        None, description='Estimated travel time in seconds (traffic-aware).'
+    )
+    glam_score: int = Field(
+        ge=1,
+        le=100,
+        description='Glam Score (1-100) — how makeup-friendly is this route.',
+    )
     checkpoints: list['CheckpointResponse'] = Field(
         description='Ordered checkpoints along the route (pothole clusters + smooth stretches).'
     )
@@ -50,15 +61,24 @@ class CheckpointResponse(BaseModel):
     )
 
 
-# --- Glam Score ---
-class GlamScoreResponse(BaseModel):
-    score: int = Field(ge=1, le=100, description='The final Glam Score (1-100).')
-    pothole_penalty: float = Field(
-        ge=0, description='Deduction amount based on pothole density.'
+# --- Leaderboard ---
+class LeaderboardEntry(BaseModel):
+    rank: int = Field(ge=1, description='Position on the leaderboard (1 = best).')
+    route_id: int = Field(gt=0, description='Route database ID.')
+    glam_score: int = Field(ge=1, le=100, description='Glam Score (1-100).')
+    distance_meters: int | None = Field(
+        None, description='Total route distance in metres.'
     )
-    traffic_penalty: float = Field(
-        ge=0, description='Deduction amount based on current traffic vs free-flow.'
+    duration_seconds: int | None = Field(
+        None, description='Estimated travel time in seconds.'
     )
-    road_penalty: float = Field(
-        ge=0, description='Deduction amount based on OSM road classification.'
+    start_lat: float = Field(ge=-90, le=90)
+    start_lng: float = Field(ge=-180, le=180)
+    end_lat: float = Field(ge=-90, le=90)
+    end_lng: float = Field(ge=-180, le=180)
+
+
+class LeaderboardResponse(BaseModel):
+    entries: list[LeaderboardEntry] = Field(
+        description='Top 10 routes ranked by Glam Score (descending).'
     )
