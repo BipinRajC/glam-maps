@@ -33,7 +33,8 @@ async def generate_route(body: RouteRequest, db: AsyncSession = Depends(get_db))
     )
     cached = result.scalars().first()
 
-    if cached is not None:
+    # if cached is not None:
+    if False:
         logger.info(f'Cache hit for route {cached.id}')
         route = cached
     else:
@@ -100,6 +101,9 @@ async def _build_checkpoints(
     # --- Traffic checkpoints ---
     traffic_cps = _build_traffic_checkpoints(route)
 
+    # --- Suppress NORMAL traffic checkpoints covered by a pothole checkpoint ---
+    traffic_cps = _filter_redundant_normal_traffic(traffic_cps, pothole_cps)
+
     # --- Merge all checkpoints, sorted by fractional position ---
     all_cps = pothole_cps + traffic_cps
     all_cps.sort(key=lambda c: c['t'])
@@ -145,6 +149,8 @@ def _build_traffic_checkpoints(route: Route) -> list[dict]:
     if total_points == 0:
         return []
 
+    max_idx = max(total_points - 1, 1)
+
     checkpoints = []
     for seg in intervals:
         start_idx = seg.get('startPolylinePointIndex', 0)
@@ -156,7 +162,7 @@ def _build_traffic_checkpoints(route: Route) -> list[dict]:
         mid_lat, mid_lng = coords[mid_idx]
 
         # Fractional position along route (0.0 → 1.0)
-        frac = mid_idx / max(total_points - 1, 1)
+        frac = mid_idx / max_idx
 
         checkpoints.append(
             {
@@ -168,10 +174,41 @@ def _build_traffic_checkpoints(route: Route) -> list[dict]:
                 'pothole_count': 0,
                 'image_url': None,
                 'needs_interpolation': False,
+                # Segment bounds for overlap detection
+                'seg_start_frac': start_idx / max_idx,
+                'seg_end_frac': end_idx / max_idx,
             }
         )
 
     return checkpoints
+
+
+def _filter_redundant_normal_traffic(
+    traffic_cps: list[dict], pothole_cps: list[dict]
+) -> list[dict]:
+    """Remove NORMAL traffic checkpoints when a pothole checkpoint already
+    falls within the same segment — avoids contradictory messages."""
+    if not pothole_cps:
+        return traffic_cps
+
+    pothole_fracs = [cp['t'] for cp in pothole_cps]
+
+    filtered = []
+    for tcp in traffic_cps:
+        if tcp['traffic_speed'] != 'NORMAL':
+            filtered.append(tcp)
+            continue
+
+        seg_start = tcp.get('seg_start_frac', tcp['t'])
+        seg_end = tcp.get('seg_end_frac', tcp['t'])
+
+        # Check if any pothole checkpoint falls inside this segment
+        has_pothole = any(seg_start <= pf <= seg_end for pf in pothole_fracs)
+        if not has_pothole:
+            filtered.append(tcp)  # keep — no pothole covers this region
+        # else: suppress — pothole checkpoint already signals this area
+
+    return filtered
 
 
 # ---------------------------------------------------------------------------
