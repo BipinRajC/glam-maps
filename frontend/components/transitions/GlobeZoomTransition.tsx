@@ -77,7 +77,6 @@ const POSITRON_STYLE =
 
 const ARC_COLOR = "#FF4081";
 const START_COLOR = "#16a34a";
-const END_COLOR = "#FF4081";
 
 export default function GlobeZoomTransition({
   fromLat,
@@ -183,16 +182,6 @@ export default function GlobeZoomTransition({
           box-shadow: 0 1px 6px rgba(0,0,0,0.18);
         `;
         new ml.Marker({ element: startEl }).setLngLat(from).addTo(map);
-
-        const endEl = document.createElement("div");
-        endEl.style.cssText = `
-          width: 22px; height: 22px; border-radius: 50%;
-          background: ${END_COLOR};
-          border: 2.5px solid white;
-          box-shadow: 0 0 0 3px rgba(255,64,129,0.25), 0 2px 10px rgba(255,64,129,0.35);
-          animation: gzt-pulse 1.8s ease-in-out infinite;
-        `;
-        new ml.Marker({ element: endEl }).setLngLat(to).addTo(map);
 
         const tFly = window.setTimeout(() => {
           if (completedRef.current) return;
