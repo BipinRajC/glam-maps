@@ -115,22 +115,6 @@ const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(
           .setLngLat(route.startCoords)
           .addTo(map);
 
-        // ── End/destination marker (pink flag) ──
-        const endEl = document.createElement("div");
-        endEl.style.cssText = `
-          width: 28px; height: 28px; border-radius: 50%;
-          background: linear-gradient(135deg, #C2185B, #FF4081);
-          border: 3px solid white;
-          box-shadow: 0 0 0 3px rgba(194,24,91,0.35), 0 2px 12px rgba(194,24,91,0.4);
-          display: flex; align-items: center; justify-content: center;
-          font-size: 14px;
-          animation: pulse-marker 2s infinite;
-        `;
-        endEl.innerHTML = "🏁";
-        new maplibregl.Marker({ element: endEl })
-          .setLngLat(route.endCoords)
-          .addTo(map);
-
         // ── Checkpoint markers ──
         route.checkpoints.forEach((cp) => {
           if (!maplibregl) return;

@@ -53,7 +53,6 @@ export default function CookingScreen({ route, onDone, mapRef, mapReady }: Cooki
           setBeat("stats-slide");
           setTimeout(() => {
             setBeat("done");
-            setTimeout(onDone, 600);
           }, 1400);
         }, 700);
       }, 500);
