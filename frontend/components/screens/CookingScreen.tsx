@@ -44,27 +44,20 @@ export default function CookingScreen({ route, onDone, mapRef, mapReady }: Cooki
   }, []);
 
   const handleTransitionComplete = useCallback(() => {
-    setBeat("map-reveal");
-    const map = mapRef.current?.getMap();
-    if (map) {
-      map.once("moveend", () => {
-        setBeat("route-draw");
-        mapRef.current?.drawRoute(route, () => {
+    setBeat("route-draw");
+    mapRef.current?.drawRoute(route, () => {
+      setTimeout(() => {
+        setBeat("mascot-reveal");
+        mapRef.current?.addMascotMarker(route.startCoords);
+        setTimeout(() => {
+          setBeat("stats-slide");
           setTimeout(() => {
-            setBeat("mascot-reveal");
-            mapRef.current?.addMascotMarker(route.startCoords);
-            setTimeout(() => {
-              setBeat("stats-slide");
-              setTimeout(() => {
-                setBeat("done");
-                setTimeout(onDone, 600);
-              }, 1400);
-            }, 700);
-          }, 500);
-        });
-      });
-    }
-    mapRef.current?.flyTo(route.startCoords, 14);
+            setBeat("done");
+            setTimeout(onDone, 600);
+          }, 1400);
+        }, 700);
+      }, 500);
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [route, onDone]);
 

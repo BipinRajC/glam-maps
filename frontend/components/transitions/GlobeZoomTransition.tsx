@@ -219,6 +219,7 @@ export default function GlobeZoomTransition({
 
           const tFade = window.setTimeout(() => {
             if (completedRef.current) return;
+            map.setProjection({ type: "mercator" });
             setPhase("fading");
             const tDone = window.setTimeout(() => {
               setPhase("done");
