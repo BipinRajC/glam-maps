@@ -87,6 +87,14 @@ export default function LocationSelectScreen({ userLocation, onSelect }: Locatio
     setPickup(makeCurrentLocation(userLocation));
   }, [userLocation]);
 
+  // Prefetch globe.gl while user is selecting locations
+  useEffect(() => {
+    const dynamicImport = new Function("url", "return import(url)");
+    const prefetch = dynamicImport("https://cdn.jsdelivr.net/npm/globe.gl");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (window as any).__globeGLPromise = prefetch;
+  }, []);
+
   const origin = useMemo<[number, number] | null>(() => {
     if (!pickup) return null;
     if (pickup.id === "__current__") return userLocation;
@@ -129,10 +137,10 @@ export default function LocationSelectScreen({ userLocation, onSelect }: Locatio
     [trending, origin],
   );
 
-  const pickupOptions: SelectableWaypoint[] = useMemo(() => {
-    const cur = makeCurrentLocation(userLocation);
-    return [cur, ...WAYPOINTS.map((w) => ({ ...w, emoji: undefined }))];
-  }, [userLocation]);
+  const pickupOptions: SelectableWaypoint[] = useMemo(
+    () => WAYPOINTS.map((w) => ({ ...w, emoji: undefined })),
+    [],
+  );
 
   const destinationOptions: SelectableWaypoint[] = useMemo(
     () => destinationPool.map((w) => ({ ...w, emoji: undefined })),
