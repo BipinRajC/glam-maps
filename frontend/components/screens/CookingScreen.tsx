@@ -51,9 +51,6 @@ export default function CookingScreen({ route, onDone, mapRef, mapReady }: Cooki
         mapRef.current?.addMascotMarker(route.startCoords);
         setTimeout(() => {
           setBeat("stats-slide");
-          setTimeout(() => {
-            setBeat("done");
-          }, 1400);
         }, 700);
       }, 500);
     });
