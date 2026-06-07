@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { GlamRoute } from "@/lib/routes";
-import MapCanvas, { type MapCanvasHandle } from "@/components/MapCanvas";
+import type { MapCanvasHandle } from "@/components/MapCanvas";
 import AuthenticityBadge from "@/components/shared/AuthenticityBadge";
 import GlobeZoomTransition from "@/components/transitions/GlobeZoomTransition";
 import { getDifficultyBg } from "@/lib/score";
@@ -11,6 +11,8 @@ import { getDifficultyBg } from "@/lib/score";
 interface CookingScreenProps {
   route: GlamRoute;
   onDone: () => void;
+  mapRef: React.RefObject<MapCanvasHandle | null>;
+  mapReady: boolean;
 }
 
 const LOADING_LINES = [
@@ -22,11 +24,9 @@ const LOADING_LINES = [
 
 type Beat = "loading" | "transition" | "map-reveal" | "route-draw" | "mascot-reveal" | "stats-slide" | "done";
 
-export default function CookingScreen({ route, onDone }: CookingScreenProps) {
-  const mapRef = useRef<MapCanvasHandle>(null);
+export default function CookingScreen({ route, onDone, mapRef, mapReady }: CookingScreenProps) {
   const [beat, setBeat] = useState<Beat>("loading");
   const [loadingLineIdx, setLoadingLineIdx] = useState(0);
-  const [mapReady, setMapReady] = useState(false);
   const sequenceStarted = useRef(false);
 
   useEffect(() => {
@@ -65,6 +65,7 @@ export default function CookingScreen({ route, onDone }: CookingScreenProps) {
       });
     }
     mapRef.current?.flyTo(route.startCoords, 14);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [route, onDone]);
 
   useEffect(() => {
@@ -99,25 +100,6 @@ export default function CookingScreen({ route, onDone }: CookingScreenProps) {
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* Map — always mounted, fades in */}
-      <motion.div
-        className="absolute inset-0 z-0"
-        animate={{ opacity: mapVisible ? 1 : 0 }}
-        transition={{ duration: 0.9 }}
-      >
-        <MapCanvas
-          ref={mapRef}
-          className="w-full h-full"
-          initialCenter={route.startCoords}
-          initialZoom={13}
-          onReady={() => setMapReady(true)}
-        />
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{ background: "linear-gradient(to top, rgba(240,240,255,0.55) 0%, rgba(240,240,255,0.08) 50%, transparent 100%)" }}
-        />
-      </motion.div>
 
       {/* Loading overlay */}
       <AnimatePresence>

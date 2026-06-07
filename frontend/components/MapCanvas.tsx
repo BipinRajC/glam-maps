@@ -175,6 +175,9 @@ const MapCanvas = forwardRef<MapCanvasHandle, MapCanvasProps>(
         const map = mapRef.current;
         if (!map || !maplibregl) return;
 
+        mascotMarkerRef.current?.remove();
+        mascotMarkerRef.current = null;
+
         const el = document.createElement("div");
         el.id = "mascot-map-marker";
         el.style.cssText = `

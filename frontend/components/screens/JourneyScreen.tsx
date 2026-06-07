@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import type { GlamRoute } from "@/lib/routes";
 import type { JourneyState } from "@/lib/journeyMachine";
 import { Camera, Map } from "lucide-react";
-import MapCanvas, { type MapCanvasHandle } from "@/components/MapCanvas";
+import type { MapCanvasHandle } from "@/components/MapCanvas";
 import CheckpointCard from "@/components/CheckpointCard";
 import AuthenticityBadge from "@/components/shared/AuthenticityBadge";
 import { getDifficultyBg } from "@/lib/score";
@@ -20,6 +20,8 @@ interface JourneyScreenProps {
   onReachCheckpoint: (index: number, delta: number, progress: number) => void;
   onDismissCheckpoint: () => void;
   onArrive: () => void;
+  mapRef: React.RefObject<MapCanvasHandle | null>;
+  mapReady: boolean;
 }
 
 export default function JourneyScreen({
@@ -28,9 +30,9 @@ export default function JourneyScreen({
   onReachCheckpoint,
   onDismissCheckpoint,
   onArrive,
+  mapRef,
+  mapReady,
 }: JourneyScreenProps) {
-  const mapRef = useRef<MapCanvasHandle>(null);
-  const [mapReady, setMapReady] = useState(false);
   const [mirrorMode, setMirrorMode] = useState(false);
   const [brightnessOverlay, setBrightnessOverlay] = useState(0.22);
   const [cameraState, setCameraState] = useState<"idle" | "ready" | "blocked">("idle");
@@ -114,10 +116,6 @@ export default function JourneyScreen({
   useEffect(() => {
     if (!mapReady) return;
 
-    mapRef.current?.drawRoute(route);
-    mapRef.current?.addMascotMarker(route.startCoords);
-    mapRef.current?.flyTo(route.startCoords, 14);
-
     if (!navigator.geolocation) return;
 
     watchIdRef.current = navigator.geolocation.watchPosition(
@@ -154,11 +152,8 @@ export default function JourneyScreen({
       mapRef.current?.removeCheckpointPopup();
       setCheckpointBanner(null);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [journeyState.activeCheckpointCard, journeyState.checkpointIndex, route.checkpoints]);
-
-  const handleMapReady = useCallback(() => {
-    setMapReady(true);
-  }, []);
 
   const { makeupIntegrity, progressPct, checkpointIndex, activeCheckpointCard } = journeyState;
   const activeCheckpoint = checkpointIndex >= 0 ? route.checkpoints[checkpointIndex] : null;
@@ -170,20 +165,6 @@ export default function JourneyScreen({
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
     >
-      <div className="absolute inset-0">
-        <MapCanvas
-          ref={mapRef}
-          className="w-full h-full"
-          initialCenter={route.startCoords}
-          initialZoom={14}
-          onReady={handleMapReady}
-        />
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{ background: "linear-gradient(to top, rgba(240,240,255,0.6) 0%, rgba(240,240,255,0.1) 35%, transparent 55%)" }}
-        />
-      </div>
-
       <div className="absolute top-4 left-0 right-0 z-20 flex justify-center px-3">
         <div className="w-full flex flex-col gap-2">
           <motion.div
