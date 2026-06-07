@@ -109,7 +109,7 @@ export default function CookingScreen({ route, onDone }: CookingScreenProps) {
         <MapCanvas
           ref={mapRef}
           className="w-full h-full"
-          initialCenter={route.endCoords}
+          initialCenter={route.startCoords}
           initialZoom={13}
           onReady={() => setMapReady(true)}
         />

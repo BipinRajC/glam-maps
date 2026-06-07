@@ -199,7 +199,7 @@ export default function GlobeZoomTransition({
           setPhase("flying");
 
           map.flyTo({
-            center: to,
+            center: from,
             zoom: 13,
             duration: 2200,
             essential: true,
